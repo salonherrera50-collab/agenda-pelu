@@ -226,25 +226,28 @@ if (appForm) {
         }
 
         promesaCita.then(() => {
-            // --- LÓGICA DE CLIENTES (Búsqueda Estricta) ---
+           // --- LÓGICA DE CLIENTES (Preguntar antes de crear) ---
             if (nombreInput !== "BLOQUEADO") {
                 db.collection("clientes").where("nombre", "==", nombreInput).get()
                 .then((snapshot) => {
                     if (!snapshot.empty) {
-                        // Si existe, actualizamos
+                        // Si existe, actualizamos el teléfono
                         const docId = snapshot.docs[0].id;
-                        db.collection("clientes").doc(docId).update({
-                            telefono: tlf
-                        });
+                        db.collection("clientes").doc(docId).update({ telefono: tlf });
                         console.log("Cliente actualizado:", nombreInput);
                     } else {
-                        // Si no existe, creamos
-                        db.collection("clientes").add({ 
-                            nombre: nombreInput, 
-                            telefono: tlf, 
-                            notas: "" 
-                        });
-                        console.log("Cliente creado:", nombreInput);
+                        // SI NO EXISTE: Preguntamos al usuario
+                        const deseaCrear = confirm(`El cliente "${nombreInput}" no existe en la base de datos. ¿Deseas darlo de alta ahora?`);
+                        
+                        if (deseaCrear) {
+                            // Abrimos el modal de cliente (Sección 6)
+                            openClienteModal();
+                            // Rellenamos los campos automáticamente
+                            document.getElementById('cli-nombre').value = nombreInput;
+                            document.getElementById('cli-telefono').value = tlf;
+                            // Aseguramos que el ID de edición esté vacío para que sea una creación nueva
+                            document.getElementById('edit-client-id').value = '';
+                        }
                     }
                 });
             }
@@ -256,7 +259,6 @@ if (appForm) {
         });
     };
 }
-// -------------------------------------------------------------------------
 
 function confirmCita(id, e) {
     e.stopPropagation();
