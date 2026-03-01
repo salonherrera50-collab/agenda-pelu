@@ -75,7 +75,10 @@
 
             <section id="clientes" class="tab-content" style="display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                    <h2>Clientes</h2>
+                    <h2 style="margin: 0; display: flex; align-items: center; gap: 12px;">
+    Clientes 
+    <span id="total-clientes-badge" style="background: #6c5ce7; color: white; padding: 2px 12px; border-radius: 50px; font-size: 0.9rem; font-weight: bold;">0</span>
+</h2>
                     <button class="btn-main" onclick="openClienteModal()" style="width:auto;">+ NUEVO CLIENTE</button>
                 </div>
                 <input type="text" id="search-client" placeholder="Buscar por nombre o móvil..." oninput="filterClientes()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:20px;">

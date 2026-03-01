@@ -273,6 +273,9 @@ async function deleteCita(id, e) {
 
 // --- 6. GESTIÓN DE CLIENTES ---
 function renderClientes(data = dbClientes) {
+    // --- LÍNEAS NUEVAS A AÑADIR ---
+    const badge = document.getElementById('total-clientes-badge');
+    if (badge) badge.innerText = data.length;
     const body = document.getElementById('clientes-list-body');
     if(!body) return;
     body.innerHTML = '';
