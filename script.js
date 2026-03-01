@@ -337,15 +337,22 @@ async function deleteCli(id) {
 }
 
 // --- 7. NOTAS Y BLOQUEOS ---
+// --- SECCIÓN 7: CORRECCIÓN DE GUARDADO DE NOTAS ---
 async function saveNote() {
     const txt = document.getElementById('note-text-input').value;
     if(txt) {
+        // Usamos getLocalDateString(currentDate) para que coincida 
+        // exactamente con el día que ves seleccionado en la agenda
+        const fechaParaGuardar = getLocalDateString(currentDate);
+
         await db.collection("notas").add({
-            fecha: getLocalDateString(currentDate), // <--- Cambio aquí
+            fecha: fechaParaGuardar,
             texto: txt
         });
+        
         document.getElementById('note-text-input').value = "";
         closeNoteModal();
+        console.log("Nota guardada en la fecha:", fechaParaGuardar);
     }
 }
 
