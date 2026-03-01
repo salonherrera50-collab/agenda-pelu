@@ -385,29 +385,42 @@ function login() {
 function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
+
+/**
+ * Abre el modal de la cita o la ficha del cliente según dónde se haga clic
+ */
 function openAppModal(id, time, e) {
-    // Si se hizo clic en el icono de borrar o confirmar, no abrir el modal
+    // 1. Si se hizo clic en el icono de borrar o confirmar, no abrir el modal de cita
     if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
     
-    // Si se hizo clic en el nombre del cliente (etiqueta B), abrir ficha del cliente
+    // Obtenemos los datos de la celda pulsada (id formato: cell-HH:mm-espacio)
+    const parts = id.split('-');
+    const esp = parts[2];
+    const dateStr = getLocalDateString(currentDate);
+
+    // 2. Lógica para el Nombre del Cliente (Etiqueta <b>)
     if (e && e.target.tagName === 'B') {
-        const cita = dbCitas.find(c => c.id === id || c.hora === time);
-        if (cita) {
+        // Buscamos la cita exacta comparando fecha, hora Y espacio (columna)
+        const cita = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
+        
+        if (cita && cita.nombre !== "BLOQUEADO") {
+            // Buscamos al cliente por nombre para obtener su ID de documento
             const cli = dbClientes.find(cl => cl.nombre === cita.nombre);
             if (cli) {
-                editCli(cli.id);
-                return; // Salir aquí para no abrir el modal de cita
+                editCli(cli.id); // Abre la ficha del cliente (Sección 6)
+                return; // Salimos para que no se abra el modal de la cita
             }
         }
     }
     
+    // 3. Lógica para Modificar Cita (Clic en celda vacía o icono lápiz)
     currentCellId = id;
-    const esp = id.split('-')[2];
-    const dateStr = getLocalDateString(currentDate);
     
+    // Limpiamos el formulario antes de abrirlo
     document.getElementById('appointment-form').reset();
     document.getElementById('modal-time-display').innerText = `${time} - E${esp}`;
     
+    // Buscamos si ya existe una cita en esa posición para cargar sus datos
     const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
     
     if (citaExistente) {
@@ -420,25 +433,54 @@ function openAppModal(id, time, e) {
     document.getElementById('appointment-modal').style.display = 'block';
 }
 
-function closeModal() { document.getElementById('appointment-modal').style.display='none'; }
-function openClienteModal() { document.getElementById('edit-client-id').value=''; document.getElementById('cliente-form').reset(); document.getElementById('cliente-modal').style.display='block'; }
-function closeClienteModal() { document.getElementById('cliente-modal').style.display='none'; }
-function openNoteModal() { document.getElementById('note-modal').style.display='block'; }
-function closeNoteModal() { document.getElementById('note-modal').style.display='none'; }
+// Funciones de control de visibilidad de modales
+function closeModal() { 
+    document.getElementById('appointment-modal').style.display = 'none';
+}
 
+function openClienteModal() { 
+    document.getElementById('edit-client-id').value = ''; 
+    document.getElementById('cliente-form').reset(); 
+    document.getElementById('cliente-modal').style.display = 'block';
+}
+
+function closeClienteModal() { 
+    document.getElementById('cliente-modal').style.display = 'none';
+}
+
+function openNoteModal() { 
+    document.getElementById('note-modal').style.display = 'block';
+}
+
+function closeNoteModal() { 
+    document.getElementById('note-modal').style.display = 'none';
+}
+
+/**
+ * Autocompleta el teléfono al seleccionar un nombre del datalist
+ */
 function autoFillPhone(n) { 
     const c = dbClientes.find(x => x.nombre === n.toUpperCase()); 
-    if(c) document.getElementById('app-phone').value = c.telefono; 
+    if(c) document.getElementById('app-phone').value = c.telefono;
 }
 
+/**
+ * Muestra/Oculta los campos de hora en el bloqueo de gestión
+ */
 function toggleBlockTimes() { 
-    document.getElementById('block-time-inputs').style.display = document.getElementById('block-type').value === 'partial' ? 'flex' : 'none'; 
+    const type = document.getElementById('block-type').value;
+    document.getElementById('block-time-inputs').style.display = (type === 'partial') ? 'flex' : 'none';
 }
 
+/**
+ * Filtra la lista de clientes en tiempo real y actualiza el contador
+ */
 function filterClientes() {
     const q = document.getElementById('search-client').value.toUpperCase();
-    const filtrados = dbClientes.filter(c => c.nombre.includes(q) || c.telefono.includes(q));
-    renderClientes(filtrados);
+    const filtrados = dbClientes.filter(c => 
+        c.nombre.includes(q) || c.telefono.includes(q)
+    );
+    renderClientes(filtrados); // Llama a la función que actualiza el badge y la tabla
 }
 
 // --- 10. ESCUCHAS FIREBASE (TIEMPO REAL) ---
