@@ -154,14 +154,17 @@ function buildAgenda() {
 
                         cell.innerHTML = `
                             <div class="occupied" style="background:${bgColor}; color:white; padding:5px; border-radius:6px; font-size:0.75rem; position:relative; height:100%;">
-                                <b onclick="event.stopPropagation(); if('${cId}' && !${esBloqueoManual}) editCli('${cli?.id}')" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'};">
-                                    ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}
-                                </b>
+                                <b onclick="event.stopPropagation(); if('${cId}' && !${esBloqueoManual}) openAppModal('${cellId}', '${cita.hora}', event)" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'}; color:white;">
+    ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}
+</b>
                                 <span style="display:block; font-size:0.65rem; opacity:0.9;">${cita.servicio}</span>
                                 <div style="position:absolute; top:4px; right:4px; display:flex; gap:8px;">
-                                    ${!esBloqueoManual ? `<i class="fas fa-check" onclick="confirmCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>` : ''}
-                                    <i class="fas fa-times" onclick="deleteCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>
-                                </div>
+    ${!esBloqueoManual ? `<i class="fas fa-edit" onclick="openAppModal('${cellId}', '${cita.hora}', event)" style="cursor:pointer; font-size:1.15rem; color:white;"></i>` : ''}
+    
+    ${!esBloqueoManual ? `<i class="fas fa-check" onclick="confirmCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>` : ''}
+    
+    <i class="fas fa-times" onclick="deleteCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>
+</div>
                                 ${cita.notas ? '<i class="fas fa-sticky-note" style="position:absolute; bottom:4px; left:4px; font-size:0.9rem;"></i>' : ''}
                             </div>`;
                     }
@@ -371,7 +374,20 @@ function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
 function openAppModal(id, time, e) {
-    if (e.target.closest('.occupied') || e.target.tagName === 'B') return;
+    // Si se hizo clic en el icono de borrar o confirmar, no abrir el modal
+    if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
+    
+    // Si se hizo clic en el nombre del cliente (etiqueta B), abrir ficha del cliente
+    if (e && e.target.tagName === 'B') {
+        const cita = dbCitas.find(c => c.id === id || c.hora === time);
+        if (cita) {
+            const cli = dbClientes.find(cl => cl.nombre === cita.nombre);
+            if (cli) {
+                editCli(cli.id);
+                return; // Salir aquí para no abrir el modal de cita
+            }
+        }
+    }
     
     currentCellId = id;
     const esp = id.split('-')[2];
