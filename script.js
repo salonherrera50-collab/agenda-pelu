@@ -102,13 +102,13 @@ function updateDateDisplay() {
     const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
     const dd = String(currentDate.getDate()).padStart(2, '0');
     const picker = document.getElementById('date-picker-side');
-    if(picker) picker.value = `${yyyy}-${mm}-${dd}`;
+if(picker) picker.value = getLocalDateString(currentDate);
 }
 
 // --- 4. LÓGICA DE AGENDA ---
 function buildAgenda() {
     const container = document.getElementById('agenda-body');
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(currentDate);
     if(!container) return;
     container.innerHTML = '';
 
@@ -203,7 +203,7 @@ if (appForm) {
         let nombreInput = nombreRaw.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
         const tlf = document.getElementById('app-phone').value.trim();
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(currentDate);
 
         const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === hora && c.espacio == esp);
 
@@ -375,7 +375,7 @@ function openAppModal(id, time, e) {
     
     currentCellId = id;
     const esp = id.split('-')[2];
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(currentDate);
     
     document.getElementById('appointment-form').reset();
     document.getElementById('modal-time-display').innerText = `${time} - E${esp}`;
@@ -421,7 +421,7 @@ function obtenerCitasFirebase() {
         console.log("Conexión del día anterior cerrada.");
     }
 
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(currentDate);
     
     // Guardamos la nueva escucha en la variable para poder cerrarla luego
     unsubscribeCitas = db.collection("citas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
@@ -442,7 +442,7 @@ function obtenerClientesFirebase() {
 function obtenerNotasFirebase() {
     if (unsubscribeNotas) unsubscribeNotas();
 
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(currentDate);
     unsubscribeNotas = db.collection("notas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbNotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const container = document.getElementById('daily-notes-container');
@@ -498,4 +498,10 @@ async function purgeAppointments() {
         await batch.commit();
         alert("Base de datos de citas limpiada.");
     }
+}
+function getLocalDateString(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
