@@ -8,6 +8,8 @@ let dbClientes = [];
 let dbNotas = [];
 let dbBloqueos = [];
 let dbUsuarios = [];
+let unsubscribeCitas = null;
+let unsubscribeNotas = null;
 
 // --- 2. VIGILANTE DE ACCESO (GOOGLE) ---
 firebase.auth().onAuthStateChanged((user) => {
@@ -150,24 +152,18 @@ function buildAgenda() {
                         const esBloqueoManual = cita.nombre === "BLOQUEADO";
                         const bgColor = esBloqueoManual ? '#57606f' : (cita.confirmada ? '#4cd137' : '#6c5ce7');
 
-                        // --- SUSTITUYE EL BLOQUE DENTRO DE buildAgenda ---
-// ... (parte inicial de buildAgenda queda igual)
                         cell.innerHTML = `
                             <div class="occupied" style="background:${bgColor}; color:white; padding:5px; border-radius:6px; font-size:0.75rem; position:relative; height:100%;">
-                                <b>${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}</b>
+                                <b onclick="event.stopPropagation(); if('${cId}' && !${esBloqueoManual}) editCli('${cli?.id}')" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'};">
+                                    ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}
+                                </b>
                                 <span style="display:block; font-size:0.65rem; opacity:0.9;">${cita.servicio}</span>
-                                
-                                <div style="position:absolute; top:4px; right:4px; display:flex; gap:6px;">
-                                    ${!esBloqueoManual ? `
-                                        <i class="fas fa-edit" onclick="editarCitaExistente('${cId}')" style="cursor:pointer; font-size:1.15rem;" title="Editar cita"></i>
-                                        <i class="fas fa-check" onclick="confirmCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;" title="Confirmar"></i>
-                                    ` : ''}
-                                    <i class="fas fa-times" onclick="deleteCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;" title="Borrar"></i>
+                                <div style="position:absolute; top:4px; right:4px; display:flex; gap:8px;">
+                                    ${!esBloqueoManual ? `<i class="fas fa-check" onclick="confirmCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>` : ''}
+                                    <i class="fas fa-times" onclick="deleteCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>
                                 </div>
-                                
                                 ${cita.notas ? '<i class="fas fa-sticky-note" style="position:absolute; bottom:4px; left:4px; font-size:0.9rem;"></i>' : ''}
                             </div>`;
-// ... (resto de buildAgenda queda igual)
                     }
                 }
                 row.appendChild(cell);
@@ -185,24 +181,7 @@ function quickBlock() {
     document.getElementById('app-notes').value = "Turno bloqueado manualmente";
     document.getElementById('appointment-form').dispatchEvent(new Event('submit'));
 }
-function editarCitaExistente(id) {
-    const cita = dbCitas.find(c => c.id === id);
-    if (!cita) return;
 
-    // Buscamos la celda correspondiente para obtener su ID (para saber dónde estaba)
-    currentCellId = `cell-${cita.hora}-${cita.espacio}`;
-
-    // Rellenamos el modal con los datos de la cita
-    document.getElementById('app-name').value = cita.nombre;
-    document.getElementById('app-phone').value = cita.telefono;
-    document.getElementById('app-service').value = cita.servicio;
-    document.getElementById('app-notes').value = cita.notas;
-    document.getElementById('modal-time-display').innerText = `${cita.hora} - E${cita.espacio}`;
-
-    // Abrimos el modal
-    document.getElementById('appointment-modal').style.display = 'block';
-}
-// --- SUSTITUYE EL BLOQUE appForm.onsubmit ---
 // --- SUSTITUYE EL BLOQUE appForm.onsubmit ---
 // --- SUSTITUYE EL BLOQUE appForm.onsubmit ---
 // --- SUSTITUYE EL BLOQUE appForm.onsubmit ---
@@ -216,6 +195,10 @@ if (appForm) {
         const hora = parts[1];
         const esp = parts[2];
         
+        // --- NORMALIZACIÓN ESTRICTA ---
+        // 1. .trim(): Quita espacios extra al inicio/final
+        // 2. .toUpperCase(): Todo a mayúsculas
+        // 3. .normalize("NFD").replace(/[\u0300-\u036f]/g, ""): QUITA ACENTOS
         let nombreRaw = document.getElementById('app-name').value;
         let nombreInput = nombreRaw.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
@@ -245,41 +228,31 @@ if (appForm) {
                 db.collection("clientes").where("nombre", "==", nombreInput).get()
                 .then((snapshot) => {
                     if (!snapshot.empty) {
-                        // SI EXISTE: Actualizamos teléfono
+                        // Si existe, actualizamos
                         const docId = snapshot.docs[0].id;
                         db.collection("clientes").doc(docId).update({
                             telefono: tlf
                         });
                         console.log("Cliente actualizado:", nombreInput);
-                        closeModal(); // Cerrar modal cita
                     } else {
-                        // --- CAMBIO AQUÍ: SI NO EXISTE, ABRIMOS MODAL CLIENTE ---
-                        if (confirm(`El cliente "${nombreInput}" no está registrado. ¿Deseas darlo de alta ahora?`)) {
-                            // 1. Cerrar modal de citas
-                            closeModal();
-                            
-                            // 2. Abrir modal de clientes y rellenar nombre
-                            openClienteModal(); 
-                            document.getElementById('cli-nombre').value = nombreInput;
-                            document.getElementById('cli-telefono').value = tlf;
-                            // Opcional: enfocar en el campo teléfono para que lo termine de rellenar
-                            document.getElementById('cli-telefono').focus();
-                        } else {
-                            // Si cancela, cerramos modal cita
-                            closeModal();
-                        }
+                        // Si no existe, creamos
+                        db.collection("clientes").add({ 
+                            nombre: nombreInput, 
+                            telefono: tlf, 
+                            notas: "" 
+                        });
+                        console.log("Cliente creado:", nombreInput);
                     }
                 });
-            } else {
-                closeModal();
             }
+            // ----------------------------------------------------
+            closeModal();
         }).catch((error) => {
             console.error("Error al guardar:", error);
             alert("Error al guardar: " + error.message);
         });
     };
 }
-// -------------------------------------------------------------------------
 // -------------------------------------------------------------------------
 
 function confirmCita(id, e) {
@@ -294,9 +267,7 @@ async function deleteCita(id, e) {
 }
 
 // --- 6. GESTIÓN DE CLIENTES ---
-// --- 6. GESTIÓN DE CLIENTES ---
 function renderClientes(data = dbClientes) {
-    // ... (este código queda igual)
     const body = document.getElementById('clientes-list-body');
     if(!body) return;
     body.innerHTML = '';
@@ -318,54 +289,27 @@ function renderClientes(data = dbClientes) {
     });
 }
 
-// --- SUSTITUYE EL BLOQUE clientForm.onsubmit ---
 const clientForm = document.getElementById('cliente-form');
 if (clientForm) {
     clientForm.onsubmit = async (e) => {
         e.preventDefault();
         const id = document.getElementById('edit-client-id').value;
-        
-        // Normalizar nombre igual que en la agenda
-        let nombreRaw = document.getElementById('cli-nombre').value;
-        let nombreInput = nombreRaw.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        
-        const cliData = {
-            nombre: nombreInput,
-            telefono: document.getElementById('cli-telefono').value.trim(),
+        const cli = {
+            nombre: document.getElementById('cli-nombre').value.toUpperCase(),
+            telefono: document.getElementById('cli-telefono').value,
             tinte: document.getElementById('cli-tinte').value,
             matiz: document.getElementById('cli-matiz').value,
             notas: document.getElementById('cli-notas').value
         };
-
         try {
-            if (id) {
-                // MODO EDICIÓN: Solo actualizar
-                await db.collection("clientes").doc(id).update(cliData);
-                closeClienteModal();
-            } else {
-                // MODO CREACIÓN: Verificar duplicados primero
-                const snapshot = await db.collection("clientes").where("nombre", "==", nombreInput).get();
-                
-                if (!snapshot.empty) {
-                    alert(`El cliente "${nombreInput}" ya existe en la base de datos.`);
-                    // Opcional: Podrías abrir el modal del cliente existente aquí
-                    return; // Detiene la ejecución, no crea el cliente
-                } else {
-                    // No existe, creamos
-                    await db.collection("clientes").add(cliData);
-                    closeClienteModal();
-                }
-            }
-        } catch (error) { 
-            console.error(error); 
-            alert("Error al guardar cliente: " + error.message);
-        }
+            if(id) await db.collection("clientes").doc(id).update(cli);
+            else await db.collection("clientes").add(cli);
+            closeClienteModal();
+        } catch (error) { console.error(error); }
     };
 }
-// -------------------------------------------------------------------------
 
 async function editCli(id) {
-    // ... (este código queda igual)
     const c = dbClientes.find(x => x.id === id);
     if(c) {
         document.getElementById('edit-client-id').value = id;
@@ -379,12 +323,10 @@ async function editCli(id) {
 }
 
 async function deleteCli(id) {
-    // ... (este código queda igual)
     if (confirm("¿Eliminar este cliente permanentemente?")) {
         await db.collection("clientes").doc(id).delete();
     }
 }
-// ...
 
 // --- 7. NOTAS Y BLOQUEOS ---
 async function saveNote() {
@@ -473,8 +415,16 @@ function filterClientes() {
 
 // --- 10. ESCUCHAS FIREBASE (TIEMPO REAL) ---
 function obtenerCitasFirebase() {
+    // Si ya existe una escucha activa, la cerramos antes de abrir la nueva
+    if (unsubscribeCitas) {
+        unsubscribeCitas();
+        console.log("Conexión del día anterior cerrada.");
+    }
+
     const dateStr = currentDate.toISOString().split('T')[0];
-    db.collection("citas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
+    
+    // Guardamos la nueva escucha en la variable para poder cerrarla luego
+    unsubscribeCitas = db.collection("citas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbCitas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         buildAgenda();
     });
@@ -490,8 +440,10 @@ function obtenerClientesFirebase() {
 }
 
 function obtenerNotasFirebase() {
+    if (unsubscribeNotas) unsubscribeNotas();
+
     const dateStr = currentDate.toISOString().split('T')[0];
-    db.collection("notas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
+    unsubscribeNotas = db.collection("notas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbNotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const container = document.getElementById('daily-notes-container');
         if(container) container.innerHTML = dbNotas.map(n => `
