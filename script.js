@@ -341,7 +341,7 @@ async function saveNote() {
     const txt = document.getElementById('note-text-input').value;
     if(txt) {
         await db.collection("notas").add({
-            fecha: currentDate.toISOString().split('T')[0],
+            fecha: getLocalDateString(currentDate), // <--- Cambio aquí
             texto: txt
         });
         document.getElementById('note-text-input').value = "";
