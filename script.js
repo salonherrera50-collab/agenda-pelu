@@ -220,13 +220,20 @@ if (appForm) {
         const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === hora && c.espacio == esp);
 
         const datosCita = {
-    fecha: dateStr, hora: hora, espacio: esp, nombre: nombreInput,
-    telefono: tlf, servicio: document.getElementById('app-service').value,
-    notas: document.getElementById('app-notes').value,
-    confirmada: citaExistente ? citaExistente.confirmada : false,
-    // Mantenemos el color existente si lo hay, si no, lo dejamos indefinido
-    color: citaExistente ? citaExistente.color : undefined 
-};
+            fecha: dateStr,
+            hora: hora,
+            espacio: esp,
+            nombre: nombreInput,
+            telefono: tlf,
+            servicio: document.getElementById('app-service').value,
+            notas: document.getElementById('app-notes').value,
+            confirmada: citaExistente ? citaExistente.confirmada : false,
+            
+            // AQUÍ ESTÁ LA CLAVE:
+            // Si la cita ya tenía un color (ej. 'yellow'), se mantiene.
+            // Si no, asignamos undefined para que no se sobrescriba.
+            color: citaExistente ? citaExistente.color : undefined
+        };
 
         // --- LÓGICA DE CITAS ---
         let promesaCita;
