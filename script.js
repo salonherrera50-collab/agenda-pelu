@@ -153,7 +153,7 @@ function buildAgenda() {
 
                         cell.innerHTML = `
                             <div class="occupied" style="background:${bgColor}; color:white; padding:5px; border-radius:6px; font-size:0.75rem; position:relative; height:100%;">
-                                <b onclick="event.stopPropagation(); abrirFichaDesdeCita('${cita.nombre}')" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'}; color:white;">
+                                <b onclick="event.stopPropagation(); abrirFichaDesdeCita('${cita.nombre}', '${cellId}', '${cita.hora}')" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'}; color:white;">
                                     ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}
                                 </b>
                                 <span style="display:block; font-size:0.65rem; opacity:0.9;">${cita.servicio}</span>
@@ -175,12 +175,13 @@ function buildAgenda() {
 }
 
 // --- 5. FUNCIONES DE CITAS Y CLIENTES ---
-function abrirFichaDesdeCita(nombreCliente) {
+function abrirFichaDesdeCita(nombreCliente, cellId, hora) {
     const cli = dbClientes.find(c => c.nombre === nombreCliente);
     if(cli) {
         editCli(cli.id);
     } else {
-        alert("Cliente no registrado en la base de datos.");
+        // Si no está, abrimos el modal de la cita para ver sus datos introducidos
+        openAppModal(cellId, hora);
     }
 }
 
