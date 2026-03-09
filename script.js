@@ -98,9 +98,6 @@ function updateDateDisplay() {
     const titleEl = document.getElementById('agenda-title');
     if (titleEl) titleEl.innerText = currentDate.toLocaleDateString('es-ES', options).toUpperCase();
     
-    const yyyy = currentDate.getFullYear();
-    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(currentDate.getDate()).padStart(2, '0');
     const picker = document.getElementById('date-picker-side');
     if(picker) picker.value = getLocalDateString(currentDate);
 }
@@ -149,12 +146,10 @@ function buildAgenda() {
                     if (cita) {
                         const cId = cita.id || '';
                         const esBloqueoManual = cita.nombre === "BLOQUEADO";
+                        const esDeWeb = cita.origen === 'web' && !cita.confirmada;
                         
-                        // LÓGICA DE COLOR DIFERENCIADA
                         let bgColor = esBloqueoManual ? '#57606f' : (cita.confirmada ? '#4cd137' : '#6c5ce7');
-                        if (cita.origen === 'web' && !cita.confirmada) {
-                            bgColor = '#e67e22'; // Naranja para citas nuevas de la web
-                        }
+                        if (esDeWeb) bgColor = '#e67e22';
 
                         cell.innerHTML = `
                             <div class="occupied" style="background:${bgColor}; color:white; padding:5px; border-radius:6px; font-size:0.75rem; position:relative; height:100%;">
@@ -163,6 +158,7 @@ function buildAgenda() {
                                 </b>
                                 <span style="display:block; font-size:0.65rem; opacity:0.9;">${cita.servicio}</span>
                                 <div style="position:absolute; top:4px; right:4px; display:flex; gap:8px;">
+                                    ${esDeWeb ? `<i class="fas fa-phone-alt" onclick="confirmarCitaWeb('${cId}', event)" style="cursor:pointer; font-size:1.15rem; color:white;" title="Confirmar cita web"></i>` : ''}
                                     ${!esBloqueoManual ? `<i class="fas fa-edit" onclick="openAppModal('${cellId}', '${cita.hora}', event)" style="cursor:pointer; font-size:1.15rem; color:white;"></i>` : ''}
                                     ${!esBloqueoManual ? `<i class="fas fa-check" onclick="confirmCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>` : ''}
                                     <i class="fas fa-times" onclick="deleteCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>
@@ -179,6 +175,16 @@ function buildAgenda() {
 }
 
 // --- 5. FUNCIONES DE CITAS ---
+async function confirmarCitaWeb(id, e) {
+    e.stopPropagation();
+    if(confirm("¿Has hablado con el cliente? La cita pasará a ser estándar.")) {
+        await db.collection("citas").doc(id).update({
+            origen: 'gestionada',
+            confirmada: true
+        });
+    }
+}
+
 function quickBlock() {
     document.getElementById('app-name').value = "BLOQUEADO";
     document.getElementById('app-phone').value = "000000000";
@@ -210,7 +216,6 @@ if (appForm) {
             telefono: tlf, servicio: document.getElementById('app-service').value,
             notas: document.getElementById('app-notes').value,
             confirmada: citaExistente ? citaExistente.confirmada : false
-            // Mantenemos origen: web si ya existía
         };
 
         let promesaCita;
@@ -497,6 +502,7 @@ async function purgeAppointments() {
         alert("Base de datos de citas limpiada.");
     }
 }
+
 function getLocalDateString(date) {
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
