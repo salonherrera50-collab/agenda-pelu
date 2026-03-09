@@ -153,7 +153,7 @@ function buildAgenda() {
 
                         cell.innerHTML = `
                             <div class="occupied" style="background:${bgColor}; color:white; padding:5px; border-radius:6px; font-size:0.75rem; position:relative; height:100%;">
-                                <b onclick="event.stopPropagation(); if('${cId}' && !${esBloqueoManual}) openAppModal('${cellId}', '${cita.hora}', event)" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'}; color:white;">
+                                <b onclick="event.stopPropagation(); abrirFichaDesdeCita('${cita.nombre}')" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'}; color:white;">
                                     ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}
                                 </b>
                                 <span style="display:block; font-size:0.65rem; opacity:0.9;">${cita.servicio}</span>
@@ -174,13 +174,22 @@ function buildAgenda() {
     }
 }
 
-// --- 5. FUNCIONES DE CITAS ---
+// --- 5. FUNCIONES DE CITAS Y CLIENTES ---
+function abrirFichaDesdeCita(nombreCliente) {
+    const cli = dbClientes.find(c => c.nombre === nombreCliente);
+    if(cli) {
+        editCli(cli.id);
+    } else {
+        alert("Cliente no registrado en la base de datos.");
+    }
+}
+
 async function confirmarCitaWeb(id, e) {
     e.stopPropagation();
     if(confirm("¿Has hablado con el cliente? La cita pasará a color morado (pendiente de entrada).")) {
         await db.collection("citas").doc(id).update({
             origen: 'gestionada',
-            confirmada: false // Forzamos a que no esté confirmada para que pase a morado
+            confirmada: false
         });
     }
 }
@@ -370,17 +379,6 @@ function logout() { isLogged = false; showTab('agenda'); }
 // --- 9. MODALES Y AUXILIARES ---
 function openAppModal(id, time, e) {
     if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
-    
-    if (e && e.target.tagName === 'B') {
-        const cita = dbCitas.find(c => c.id === id || c.hora === time);
-        if (cita) {
-            const cli = dbClientes.find(cl => cl.nombre === cita.nombre);
-            if (cli) {
-                editCli(cli.id);
-                return;
-            }
-        }
-    }
     
     currentCellId = id;
     const esp = id.split('-')[2];
