@@ -177,10 +177,10 @@ function buildAgenda() {
 // --- 5. FUNCIONES DE CITAS ---
 async function confirmarCitaWeb(id, e) {
     e.stopPropagation();
-    if(confirm("¿Has hablado con el cliente? La cita pasará a ser estándar.")) {
+    if(confirm("¿Has hablado con el cliente? La cita pasará a color morado (pendiente de entrada).")) {
         await db.collection("citas").doc(id).update({
             origen: 'gestionada',
-            confirmada: true
+            confirmada: false // Forzamos a que no esté confirmada para que pase a morado
         });
     }
 }
