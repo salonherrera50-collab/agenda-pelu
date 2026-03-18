@@ -1,6 +1,7 @@
 // --- 1. CONFIGURACIÓN Y ESTADO ---
 const provider = new firebase.auth.GoogleAuthProvider();
 let currentDate = new Date();
+currentDate.setHours(0, 0, 0, 0);
 let isLogged = false;
 let currentCellId = null;
 let dbCitas = [];
@@ -70,6 +71,8 @@ function showTab(tabId) {
             document.getElementById('admin-panel').style.display = 'block';
             renderBlocks();
             renderUsers();
+            // Intentamos actualizar estadísticas sin bloquear el resto del panel
+            actualizarEstadisticasAnuales().catch(err => console.log("Error stats:", err)); 
         } else {
             document.getElementById('login-section').style.display = 'block';
             document.getElementById('admin-panel').style.display = 'none';
@@ -187,11 +190,23 @@ function abrirFichaDesdeCita(nombreCliente, cellId, hora) {
 
 async function confirmarCitaWeb(id, e) {
     e.stopPropagation();
-    if(confirm("¿Has hablado con el cliente? La cita pasará a color morado (pendiente de entrada).")) {
-        await db.collection("citas").doc(id).update({
-            origen: 'gestionada',
-            confirmada: false
-        });
+    if(confirm("¿Has hablado con el cliente? La cita pasará a ser una GESTIÓN COMPLETADA.")) {
+        try {
+            await db.collection("citas").doc(id).update({
+                origen: 'gestionada', // Esto mueve la cita al contador de "Total Clientes Web"
+                confirmada: false     // La mantiene en color morado (pendiente de que llegue al salón)
+            });
+            
+            // ¡ESTO ES LO IMPORTANTE! Actualiza los contadores de gestión al momento
+            if (typeof actualizarEstadisticasAnuales === "function") {
+                actualizarEstadisticasAnuales();
+            }
+            
+            console.log("Cita gestionada correctamente");
+        } catch (error) {
+            console.error("Error al gestionar cita web:", error);
+            alert("Hubo un error al actualizar la cita.");
+        }
     }
 }
 
@@ -341,7 +356,8 @@ async function saveNote() {
     const txt = document.getElementById('note-text-input').value;
     if(txt) {
         await db.collection("notas").add({
-            fecha: currentDate.toISOString().split('T')[0],
+            // CAMBIO AQUÍ: Usamos tu función local en lugar de toISOString
+            fecha: getLocalDateString(currentDate), 
             texto: txt
         });
         document.getElementById('note-text-input').value = "";
@@ -507,4 +523,56 @@ function getLocalDateString(date) {
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
+}
+// Función para crear administradores (faltaba en tu script)
+async function saveUser() {
+    const user = document.getElementById('new-user').value.trim();
+    const pass = document.getElementById('new-pass').value.trim();
+    if(user && pass) {
+        try {
+            await db.collection("usuarios").add({ user, pass });
+            document.getElementById('new-user').value = "";
+            document.getElementById('new-pass').value = "";
+            alert("Usuario administrador creado con éxito");
+        } catch (e) { alert("Error al crear usuario"); }
+    } else {
+        alert("Por favor, rellena usuario y contraseña");
+    }
+}
+
+// Función de estadísticas anuales protegida
+async function actualizarEstadisticasAnuales() {
+    const anioActual = new Date().getFullYear().toString();
+    const displayYear = document.getElementById('current-year-display');
+    if(displayYear) displayYear.innerText = anioActual;
+
+    try {
+        const snapshot = await db.collection("citas").get();
+        const todas = snapshot.docs.map(doc => doc.data());
+        const delAnio = todas.filter(c => c.fecha && c.fecha.startsWith(anioActual));
+
+        // 1. Total Citas del salón (Manuales + Web)
+        const txtTotal = document.getElementById('count-total-anual');
+        if(txtTotal) txtTotal.innerText = delAnio.length;
+
+        // 2. Atendidas/Confirmadas (Las que ya han venido o están seguras)
+        const txtConf = document.getElementById('count-confirmadas-anual');
+        if(txtConf) txtConf.innerText = delAnio.filter(c => c.confirmada === true).length;
+
+        // 3. Pendientes Web (Siguen en NARANJA, origen 'web')
+        const txtWebP = document.getElementById('count-web-anual');
+        if(txtWebP) {
+            txtWebP.innerText = delAnio.filter(c => c.origen === 'web' && c.confirmada === false).length;
+        }
+
+        // 4. Total Clientes Web (Solo las que ya has GESTIONADO/HABLADO)
+        const txtWebT = document.getElementById('count-total-web-anual');
+        if(txtWebT) {
+            // CAMBIO AQUÍ: Solo contamos las que ya pasaron por tu filtro de llamada
+            txtWebT.innerText = delAnio.filter(c => c.origen === 'gestionada').length;
+        }
+
+    } catch (error) {
+        console.error("Error calculando estadísticas:", error);
+    }
 }
