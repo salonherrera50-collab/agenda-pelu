@@ -87,8 +87,8 @@
 </h2>
                     <button class="btn-main" onclick="openClienteModal()" style="width:auto;">+ NUEVO CLIENTE</button>
                 </div>
-                <input type="text" id="search-client" placeholder="Buscar por nombre o móvil..." oninput="filterClientes()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:20px;">
-                <div class="table-card">
+                >
+                <div class="table-card"><input type="text" id="search-client" placeholder="Buscar por nombre o móvil..." oninput="filterClientes()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:20px;" autocomplete="off">
                     <table class="clientes-table">
                         <thead>
                             <tr><th>NOMBRE</th><th>TELÉFONO</th><th>TINTE/MATIZ</th><th>ACCIONES</th></tr>
@@ -183,21 +183,23 @@
             <form id="appointment-form">
                 <div class="field">
                     <label>Cliente</label>
-                    <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)">
+                    <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)" autocomplete="off">
                     <datalist id="list-nombres"></datalist>
                 </div>
                 <div class="field">
                     <label>Móvil</label>
-                    <input type="tel" id="app-phone" required>
+                    <input type="tel" id="app-phone" required list="list-telefonos" autocomplete="off" oninput="autoFillName(this.value)">
+<datalist id="list-telefonos"></datalist>
                 </div>
                 <div class="field">
                     <label>Servicio</label>
-                    <input type="text" id="app-service" required>
+                    <input type="text" id="app-service" required autocomplete="off">
                 </div>
                 <div class="field">
-                    <label>Notas Cita</label>
-                    <textarea id="app-notes"></textarea>
-                </div>
+    <label>Notas Cita</label>
+    <!-- Añadimos autocomplete="off" para que siempre esté vacío al abrirlo -->
+    <textarea id="app-notes" autocomplete="off"></textarea>
+</div>
 
                 <button type="button" onclick="quickBlock()" style="background:#57606f; color:white; margin-bottom:10px; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">
                     <i class="fas fa-ban"></i> BLOQUEAR ESTE TURNO
@@ -208,10 +210,39 @@
         </div>
     </div>
 
-    <div id="cliente-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeClienteModal()">&times;</span><h3>Ficha Cliente</h3><form id="cliente-form"><input type="hidden" id="edit-client-id"><div class="field"><label>Nombre</label><input type="text" id="cli-nombre" required></div><div class="field"><label>Teléfono</label><input type="tel" id="cli-telefono" required></div><div style="display:flex; gap:10px;"><div class="field" style="flex:1;"><label>Tinte</label><input type="text" id="cli-tinte"></div><div class="field" style="flex:1;"><label>Matiz</label><input type="text" id="cli-matiz"></div></div><div class="field"><label>Observaciones/Mezclas</label><textarea id="cli-notas" style="height:100px;"></textarea></div><button type="submit" class="btn-main">GUARDAR FICHA</button></form></div></div>
-    <div id="stats-modal" class="modal"><div class="modal-content"><span class="close" onclick="document.getElementById('stats-modal').style.display='none'">&times;</span><h3>Info Cliente</h3><div id="stats-content"></div></div></div>
-    <div id="note-modal" class="modal"><div class="modal-content"><span class="close" onclick="closeNoteModal()">&times;</span><h3>Nueva Nota del Día</h3><div class="field"><textarea id="note-text-input"></textarea></div><button onclick="saveNote()" class="btn-main">AÑADIR</button></div></div>
+   <!-- 1. MODAL FICHA CLIENTE (CON AUTOCOMPLETE DESACTIVADO) -->
+    <div id="cliente-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeClienteModal()">&times;</span>
+            <h3>Ficha Cliente</h3>
+            <form id="cliente-form" autocomplete="off">
+                <input type="hidden" id="edit-client-id">
+                <div class="field"><label>Nombre</label><input type="text" id="cli-nombre" required autocomplete="off"></div>
+                <div class="field"><label>Teléfono</label><input type="tel" id="cli-telefono" required autocomplete="off"></div>
+                <div style="display:flex; gap:10px;">
+                    <div class="field" style="flex:1;"><label>Tinte</label><input type="text" id="cli-tinte" autocomplete="off"></div>
+                    <div class="field" style="flex:1;"><label>Matiz</label><input type="text" id="cli-matiz" autocomplete="off"></div>
+                </div>
+                <div class="field"><label>Observaciones/Mezclas</label><textarea id="cli-notas" style="height:100px;"></textarea></div>
+                <button type="submit" class="btn-main">GUARDAR FICHA</button>
+            </form>
+        </div>
+    </div>
 
+    <!-- 2. MODAL INFO CLIENTE -->
+    <div id="stats-modal" class="modal"><div class="modal-content"><span class="close" onclick="document.getElementById('stats-modal').style.display='none'">&times;</span><h3>Info Cliente</h3><div id="stats-content"></div></div></div>
+    
+    <!-- 3. MODAL NOTAS (CON AUTOCOMPLETE DESACTIVADO) -->
+    <div id="note-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeNoteModal()">&times;</span>
+            <h3>Nueva Nota del Día</h3>
+            <form id="note-form" autocomplete="off">
+                <div class="field"><textarea id="note-text-input"></textarea></div>
+                <button onclick="saveNote()" class="btn-main">AÑADIR</button>
+            </form>
+        </div>
+    </div>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>

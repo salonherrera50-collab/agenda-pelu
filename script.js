@@ -56,6 +56,15 @@ function iniciarEscuchasFirebase() {
 
 // --- 3. NAVEGACIÓN Y CALENDARIO ---
 function showTab(tabId) {
+    // 1. EL BLOQUEO: Si el destino NO es gestion, forzamos el cierre de sesión administrativa
+    if (tabId !== 'gestion') {
+        isLogged = false;
+        // Opcional: Limpiamos los campos de texto por si acaso no se limpiaron antes
+        if(document.getElementById('login-user')) document.getElementById('login-user').value = "";
+        if(document.getElementById('login-pass')) document.getElementById('login-pass').value = "";
+    }
+
+    // 2. Gestión visual de pestañas (Lo que ya tenías)
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     
@@ -65,15 +74,17 @@ function showTab(tabId) {
     const targetBtn = document.getElementById('btn-nav-' + tabId);
     if(targetBtn) targetBtn.classList.add('active');
 
+    // 3. Lógica específica de la pestaña Gestión
     if (tabId === 'gestion') {
         if (isLogged) {
+            // Si es true (porque acabas de loguearte con éxito), entras al panel
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('admin-panel').style.display = 'block';
             renderBlocks();
             renderUsers();
-            // Intentamos actualizar estadísticas sin bloquear el resto del panel
-            actualizarEstadisticasAnuales().catch(err => console.log("Error stats:", err)); 
+            actualizarEstadisticasAnuales().catch(err => console.log("Error stats:", err));
         } else {
+            // Si es false (porque vienes de otra pestaña), te manda al login SIEMPRE
             document.getElementById('login-section').style.display = 'block';
             document.getElementById('admin-panel').style.display = 'none';
         }
@@ -112,14 +123,25 @@ function buildAgenda() {
     if(!container) return;
     container.innerHTML = '';
 
+    // 1. Mantenemos 'hoy' con TODO (citas y bloqueos) para que se dibujen en la agenda
     const hoy = dbCitas.filter(c => c.fecha === dateStr);
+    
+    // 2. NUEVO: Creamos una lista filtrada solo para los contadores numéricos
+    const soloClientes = hoy.filter(c => {
+        const nombreLimpio = c.nombre ? c.nombre.trim().toUpperCase() : "";
+        const esBloqueo = nombreLimpio === "BLOQUEADO" || c.esBloqueo === true;
+        return !esBloqueo;
+    });
+
     const bloqueosHoy = dbBloqueos.filter(b => b.fecha === dateStr);
     const diaBloqueadoTotal = bloqueosHoy.find(b => b.tipo === 'full');
 
     const citasCountEl = document.getElementById('total-citas-count');
     const confCountEl = document.getElementById('confirmadas-count');
-    if (citasCountEl) citasCountEl.innerText = hoy.length;
-    if (confCountEl) confCountEl.innerText = hoy.filter(c => c.confirmada).length;
+
+    // 3. MODIFICADO: Usamos 'soloClientes' para los numeritos de arriba
+    if (citasCountEl) citasCountEl.innerText = soloClientes.length; 
+    if (confCountEl) confCountEl.innerText = soloClientes.filter(c => c.confirmada).length;
 
     for (let h = 9; h <= 20; h++) {
         for (let m of ['00', '30']) {
@@ -128,6 +150,7 @@ function buildAgenda() {
             const row = document.createElement('div');
             row.className = 'agenda-row';
             
+            // Seguimos usando 'hoy' para que el color de la hora y las celdas funcione
             const enHora = hoy.filter(c => c.hora === time).length;
             let colorStyle = (enHora >= 6) ? 'background:#ee5d50; color:white; border-radius:5px;' : (enHora >= 4 ? 'background:#ff9f43; color:white; border-radius:5px;' : '');
 
@@ -148,7 +171,7 @@ function buildAgenda() {
                     const cita = hoy.find(c => c.hora === time && c.espacio == i);
                     if (cita) {
                         const cId = cita.id || '';
-                        const esBloqueoManual = cita.nombre === "BLOQUEADO";
+                        const esBloqueoManual = cita.nombre === "BLOQUEADO" || cita.esBloqueo === true;
                         const esDeWeb = cita.origen === 'web' && !cita.confirmada;
                         
                         let bgColor = esBloqueoManual ? '#57606f' : (cita.confirmada ? '#4cd137' : '#6c5ce7');
@@ -211,11 +234,19 @@ async function confirmarCitaWeb(id, e) {
 }
 
 function quickBlock() {
+    const form = document.getElementById('appointment-form');
+    
+    // Rellenamos los campos como ya hacías
     document.getElementById('app-name').value = "BLOQUEADO";
     document.getElementById('app-phone').value = "000000000";
     document.getElementById('app-service').value = "NO DISPONIBLE";
     document.getElementById('app-notes').value = "Turno bloqueado manualmente";
-    document.getElementById('appointment-form').dispatchEvent(new Event('submit'));
+    
+    // ESTA ES LA CLAVE: Añadimos una marca temporal al formulario
+    form.dataset.isBlock = "true";
+    
+    // Disparamos el envío
+    form.dispatchEvent(new Event('submit'));
 }
 
 const appForm = document.getElementById('appointment-form');
@@ -223,6 +254,9 @@ if (appForm) {
     appForm.onsubmit = (e) => {
         e.preventDefault();
         if(!currentCellId) return;
+        
+        // --- NUEVO: Detectar si es un bloqueo ---
+        const esUnBloqueoManual = e.target.dataset.isBlock === "true";
         
         const parts = currentCellId.split('-');
         const hora = parts[1];
@@ -236,11 +270,17 @@ if (appForm) {
 
         const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === hora && c.espacio == esp);
 
+        // --- MODIFICADO: Añadimos 'esBloqueo' a los datos ---
         const datosCita = {
-            fecha: dateStr, hora: hora, espacio: esp, nombre: nombreInput,
-            telefono: tlf, servicio: document.getElementById('app-service').value,
+            fecha: dateStr,
+            hora: hora,
+            espacio: esp,
+            nombre: nombreInput,
+            telefono: tlf,
+            servicio: document.getElementById('app-service').value,
             notas: document.getElementById('app-notes').value,
-            confirmada: citaExistente ? citaExistente.confirmada : false
+            confirmada: citaExistente ? citaExistente.confirmada : false,
+            esBloqueo: esUnBloqueoManual // <--- Esto es la clave para las estadísticas
         };
 
         let promesaCita;
@@ -251,7 +291,10 @@ if (appForm) {
         }
 
         promesaCita.then(() => {
-            if (nombreInput !== "BLOQUEADO") {
+            // --- NUEVO: Limpiamos la marca del formulario ---
+            e.target.dataset.isBlock = "false";
+
+            if (nombreInput !== "BLOQUEADO" && !esUnBloqueoManual) {
                 db.collection("clientes").where("nombre", "==", nombreInput).get()
                 .then((snapshot) => {
                     if (!snapshot.empty) {
@@ -385,12 +428,20 @@ async function eliminarBloqueo(id) { if(confirm("¿Quitar bloqueo?")) await db.c
 function login() {
     const u = document.getElementById('login-user').value;
     const p = document.getElementById('login-pass').value;
+
+    // Validación de administrador o usuario de la base de datos
     if ((u === "admin" && p === "admin") || dbUsuarios.find(x => x.user === u && x.pass === p)) {
         isLogged = true;
+        
+        // Limpiamos los inputs para que no se quede la clave escrita al salir y volver a entrar
+        document.getElementById('login-user').value = "";
+        document.getElementById('login-pass').value = "";
+        
         showTab('gestion');
-    } else { alert("Usuario o contraseña incorrectos"); }
+    } else {
+        alert("Usuario o contraseña incorrectos");
+    }
 }
-
 function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
@@ -444,16 +495,53 @@ function obtenerCitasFirebase() {
     const dateStr = getLocalDateString(currentDate);
     unsubscribeCitas = db.collection("citas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbCitas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // 1. Dibuja la agenda del día (lo que ya hacía)
         buildAgenda();
+
+        // 2. NUEVO: Lanza la actualización de las estadísticas anuales 
+        // para que los contadores de Gestión cambien al instante
+        if (typeof actualizarEstadisticasAnuales === "function") {
+            actualizarEstadisticasAnuales();
+        }
     });
 }
-
 function obtenerClientesFirebase() {
     db.collection("clientes").onSnapshot((snapshot) => {
-        dbClientes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // 1. Extraemos los datos de Firebase
+        let lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 2. ORDENAR: Alfabéticamente por nombre
+        lista.sort((a, b) => {
+            const nombreA = (a.nombre || "").toUpperCase();
+            const nombreB = (b.nombre || "").toUpperCase();
+            return nombreA.localeCompare(nombreB);
+        });
+
+        // 3. Guardamos en la variable global
+        dbClientes = lista;
+
+        // 4. Dibujamos la tabla de la pestaña Clientes
         renderClientes();
-        const datalist = document.getElementById('list-nombres');
-        if (datalist) datalist.innerHTML = dbClientes.map(c => `<option value="${c.nombre}">`).join('');
+
+        // 5. ACTUALIZAMOS LOS DOS DESPLEGABLES (Datalists)
+        const datalistNombres = document.getElementById('list-nombres');
+        const datalistTelefonos = document.getElementById('list-telefonos');
+
+        // Llenar sugerencias de Nombres
+        if (datalistNombres) {
+            datalistNombres.innerHTML = dbClientes
+                .map(c => `<option value="${c.nombre}">`)
+                .join('');
+        }
+        
+        // Llenar sugerencias de Teléfonos (NUEVO)
+        if (datalistTelefonos) {
+            datalistTelefonos.innerHTML = dbClientes
+                .filter(c => c.telefono) // Solo si el cliente tiene teléfono
+                .map(c => `<option value="${c.telefono}">`)
+                .join('');
+        }
     });
 }
 
@@ -540,39 +628,67 @@ async function saveUser() {
     }
 }
 
-// Función de estadísticas anuales protegida
 async function actualizarEstadisticasAnuales() {
     const anioActual = new Date().getFullYear().toString();
     const displayYear = document.getElementById('current-year-display');
     if(displayYear) displayYear.innerText = anioActual;
 
     try {
+        // Obtenemos todas las citas de la base de datos
         const snapshot = await db.collection("citas").get();
         const todas = snapshot.docs.map(doc => doc.data());
-        const delAnio = todas.filter(c => c.fecha && c.fecha.startsWith(anioActual));
 
-        // 1. Total Citas del salón (Manuales + Web)
-        const txtTotal = document.getElementById('count-total-anual');
-        if(txtTotal) txtTotal.innerText = delAnio.length;
+        // FILTRO MEJORADO
+        const delAnio = todas.filter(c => {
+            // 1. Validar que tenga fecha y sea de este año
+            const esEsteAnio = c.fecha && typeof c.fecha === 'string' && c.fecha.startsWith(anioActual);
+            
+            // 2. Identificar si es un bloqueo (por nombre o por marca nueva)
+            const nombreLimpio = c.nombre ? c.nombre.trim().toUpperCase() : "";
+            const esUnBloqueo = (nombreLimpio === "BLOQUEADO" || c.esBloqueo === true);
+            
+            // Solo queremos lo que sea de este año y NO sea un bloqueo
+            return esEsteAnio && !esUnBloqueo;
+        });
 
-        // 2. Atendidas/Confirmadas (Las que ya han venido o están seguras)
-        const txtConf = document.getElementById('count-confirmadas-anual');
-        if(txtConf) txtConf.innerText = delAnio.filter(c => c.confirmada === true).length;
-
-        // 3. Pendientes Web (Siguen en NARANJA, origen 'web')
-        const txtWebP = document.getElementById('count-web-anual');
-        if(txtWebP) {
-            txtWebP.innerText = delAnio.filter(c => c.origen === 'web' && c.confirmada === false).length;
+        // ASIGNACIÓN DE VALORES (con fallback a 0 si no hay datos)
+        if(document.getElementById('count-total-anual')) {
+            document.getElementById('count-total-anual').innerText = delAnio.length;
         }
 
-        // 4. Total Clientes Web (Solo las que ya has GESTIONADO/HABLADO)
-        const txtWebT = document.getElementById('count-total-web-anual');
-        if(txtWebT) {
-            // CAMBIO AQUÍ: Solo contamos las que ya pasaron por tu filtro de llamada
-            txtWebT.innerText = delAnio.filter(c => c.origen === 'gestionada').length;
+        if(document.getElementById('count-confirmadas-anual')) {
+            document.getElementById('count-confirmadas-anual').innerText = delAnio.filter(c => c.confirmada === true).length;
         }
+
+        if(document.getElementById('count-web-anual')) {
+            document.getElementById('count-web-anual').innerText = delAnio.filter(c => c.origen === 'web' && c.confirmada === false).length;
+        }
+
+        if(document.getElementById('count-total-web-anual')) {
+            document.getElementById('count-total-web-anual').innerText = delAnio.filter(c => c.origen === 'gestionada').length;
+        }
+
+        console.log("Estadísticas actualizadas con", delAnio.length, "citas reales.");
 
     } catch (error) {
         console.error("Error calculando estadísticas:", error);
+    }
+}
+// Función para que al poner el teléfono sugiera el nombre
+function autoFillName(telefono) {
+    if (!telefono || telefono.length < 3) return; // No busca hasta que haya 3 números
+    
+    // Buscamos en nuestra base de datos local de clientes
+    const clienteEncontrado = dbClientes.find(x => x.telefono === telefono);
+    
+    if (clienteEncontrado) {
+        // Si lo encuentra, rellena el nombre automáticamente
+        document.getElementById('app-name').value = clienteEncontrado.nombre;
+        
+        // Opcional: podrías ponerle un color momentáneo para que veas que lo ha encontrado
+        document.getElementById('app-name').style.backgroundColor = "#e8f5e9";
+        setTimeout(() => {
+            document.getElementById('app-name').style.backgroundColor = "";
+        }, 1000);
     }
 }
