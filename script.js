@@ -114,6 +114,25 @@ function updateDateDisplay() {
     
     const picker = document.getElementById('date-picker-side');
     if(picker) picker.value = getLocalDateString(currentDate);
+
+    // --- ACTUALIZACIÓN DEL BOTÓN ---
+    const btnHoy = document.getElementById('btn-hoy-rapido');
+    if (btnHoy) {
+        const hoyStr = getLocalDateString(new Date());
+        const seleccionadoStr = getLocalDateString(currentDate);
+
+        if (hoyStr !== seleccionadoStr) {
+            // Si NO estamos en el día actual
+            btnHoy.style.background = "#ff9f43"; 
+            btnHoy.innerHTML = '<i class="fas fa-exclamation-circle"></i> VOLVER A HOY';
+            btnHoy.classList.add('btn-alerta-hoy'); // Activa el efecto del CSS
+        } else {
+            // Si ya estamos en hoy
+            btnHoy.style.background = "#6c5ce7";
+            btnHoy.innerHTML = '<i class="fas fa-calendar-check"></i> ESTÁS EN HOY';
+            btnHoy.classList.remove('btn-alerta-hoy'); // Quita el efecto
+        }
+    }
 }
 
 // --- 4. LÓGICA DE AGENDA ---
@@ -123,10 +142,8 @@ function buildAgenda() {
     if(!container) return;
     container.innerHTML = '';
 
-    // 1. Mantenemos 'hoy' con TODO (citas y bloqueos) para que se dibujen en la agenda
     const hoy = dbCitas.filter(c => c.fecha === dateStr);
     
-    // 2. NUEVO: Creamos una lista filtrada solo para los contadores numéricos
     const soloClientes = hoy.filter(c => {
         const nombreLimpio = c.nombre ? c.nombre.trim().toUpperCase() : "";
         const esBloqueo = nombreLimpio === "BLOQUEADO" || c.esBloqueo === true;
@@ -139,7 +156,6 @@ function buildAgenda() {
     const citasCountEl = document.getElementById('total-citas-count');
     const confCountEl = document.getElementById('confirmadas-count');
 
-    // 3. MODIFICADO: Usamos 'soloClientes' para los numeritos de arriba
     if (citasCountEl) citasCountEl.innerText = soloClientes.length; 
     if (confCountEl) confCountEl.innerText = soloClientes.filter(c => c.confirmada).length;
 
@@ -150,7 +166,6 @@ function buildAgenda() {
             const row = document.createElement('div');
             row.className = 'agenda-row';
             
-            // Seguimos usando 'hoy' para que el color de la hora y las celdas funcione
             const enHora = hoy.filter(c => c.hora === time).length;
             let colorStyle = (enHora >= 6) ? 'background:#ee5d50; color:white; border-radius:5px;' : (enHora >= 4 ? 'background:#ff9f43; color:white; border-radius:5px;' : '');
 
@@ -169,28 +184,31 @@ function buildAgenda() {
                 } else {
                     cell.onclick = (e) => openAppModal(cellId, time, e);
                     const cita = hoy.find(c => c.hora === time && c.espacio == i);
+                    
                     if (cita) {
-                        const cId = cita.id || '';
                         const esBloqueoManual = cita.nombre === "BLOQUEADO" || cita.esBloqueo === true;
                         const esDeWeb = cita.origen === 'web' && !cita.confirmada;
                         
                         let bgColor = esBloqueoManual ? '#57606f' : (cita.confirmada ? '#4cd137' : '#6c5ce7');
                         if (esDeWeb) bgColor = '#e67e22';
 
-                        cell.innerHTML = `
-                            <div class="occupied" style="background:${bgColor}; color:white; padding:5px; border-radius:6px; font-size:0.75rem; position:relative; height:100%;">
-                                <b onclick="event.stopPropagation(); abrirFichaDesdeCita('${cita.nombre}', '${cellId}', '${cita.hora}')" style="cursor:${esBloqueoManual ? 'default' : 'pointer'}; text-decoration:${esBloqueoManual ? 'none' : 'underline'}; color:white;">
-                                    ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : cita.nombre}
-                                </b>
-                                <span style="display:block; font-size:0.65rem; opacity:0.9;">${cita.servicio}</span>
-                                <div style="position:absolute; top:4px; right:4px; display:flex; gap:8px;">
-                                    ${esDeWeb ? `<i class="fas fa-phone-alt" onclick="confirmarCitaWeb('${cId}', event)" style="cursor:pointer; font-size:1.15rem; color:white;" title="Confirmar cita web"></i>` : ''}
-                                    ${!esBloqueoManual ? `<i class="fas fa-edit" onclick="openAppModal('${cellId}', '${cita.hora}', event)" style="cursor:pointer; font-size:1.15rem; color:white;"></i>` : ''}
-                                    ${!esBloqueoManual ? `<i class="fas fa-check" onclick="confirmCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>` : ''}
-                                    <i class="fas fa-times" onclick="deleteCita('${cId}', event)" style="cursor:pointer; font-size:1.15rem;"></i>
-                                </div>
-                                ${cita.notas ? '<i class="fas fa-sticky-note" style="position:absolute; bottom:4px; left:4px; font-size:0.9rem;"></i>' : ''}
-                            </div>`;
+                        // --- NUEVA LÓGICA: SOLO PRIMER NOMBRE Y RESALTE DE SERVICIO ---
+                        const nombreCompleto = cita.nombre || "";
+                        const soloPrimerNombre = nombreCompleto.trim().split(" ")[0];
+
+                       cell.innerHTML = `
+    <div class="occupied clickable-card" style="background:${bgColor}; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px;" onclick="openAppModal('${cellId}', '${cita.hora}', event)">
+        
+        <b onclick="event.stopPropagation(); abrirFichaDesdeCita('${cita.nombre}', '${cellId}', '${cita.hora}')" class="client-name-display">
+            ${esBloqueoManual ? '<i class="fas fa-ban"></i> BLOQUEADO' : soloPrimerNombre}
+        </b>
+        
+        <span class="service-text-display">${cita.servicio}</span>
+        
+        ${cita.notas ? '<div class="note-glow-indicator"></div>' : ''}
+        
+        ${esDeWeb ? '<div style="position:absolute; top:5px; right:5px; background:white; color:#e67e22; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:0.6rem;"><i class="fas fa-globe"></i></div>' : ''}
+    </div>`;
                     }
                 }
                 row.appendChild(cell);
@@ -446,6 +464,7 @@ function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
 function openAppModal(id, time, e) {
+    // 1. Evitamos que se abra si pulsamos iconos que no sean de edición (aunque ahora los hayamos quitado)
     if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
     
     currentCellId = id;
@@ -457,11 +476,34 @@ function openAppModal(id, time, e) {
     
     const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
     
+    // --- LÓGICA PARA BOTONES DE TABLET ---
+    const contenedorAcciones = document.getElementById('tablet-actions');
+    const btnConf = document.getElementById('btn-confirmar-modal');
+    const btnBorr = document.getElementById('btn-borrar-modal');
+
     if (citaExistente) {
         document.getElementById('app-name').value = citaExistente.nombre;
         document.getElementById('app-phone').value = citaExistente.telefono;
         document.getElementById('app-service').value = citaExistente.servicio;
         document.getElementById('app-notes').value = citaExistente.notas;
+
+        // Si la cita existe, mostramos los botones de Confirmar/Borrar y les damos vida
+        if (contenedorAcciones) contenedorAcciones.style.display = 'grid';
+        
+        if (btnConf) {
+            btnConf.onclick = (event) => {
+                confirmCita(citaExistente.id, event);
+                closeModal();
+            };
+        }
+        if (btnBorr) {
+            btnBorr.onclick = (event) => {
+                deleteCita(citaExistente.id, event).then(() => closeModal());
+            };
+        }
+    } else {
+        // Si la celda está vacía, ocultamos los botones de gestión
+        if (contenedorAcciones) contenedorAcciones.style.display = 'none';
     }
 
     document.getElementById('appointment-modal').style.display = 'block';
@@ -691,4 +733,41 @@ function autoFillName(telefono) {
             document.getElementById('app-name').style.backgroundColor = "";
         }, 1000);
     }
+}
+// --- FUNCIÓN PARA VOLVER AL DÍA Y HORA ACTUAL ---
+function resetearAHoy() {
+    // 1. Volvemos a la fecha de hoy
+    currentDate = new Date();
+    
+    // 2. Actualizamos el selector visual y el título de la agenda
+    updateDateDisplay();
+    
+    // 3. Refrescamos los datos desde Firebase para hoy
+    obtenerCitasFirebase();
+    obtenerNotasFirebase();
+
+    // 4. Hacemos scroll automático a la hora actual
+    setTimeout(() => {
+        const ahora = new Date();
+        const hora = ahora.getHours();
+        const minutos = ahora.getMinutes() < 30 ? "00" : "30";
+        const tiempoId = `${hora.toString().padStart(2, '0')}:${minutos}`;
+        
+        // Buscamos la fila que contiene esa hora
+        const filas = document.querySelectorAll('.agenda-row');
+        let filaDestino = null;
+
+        filas.forEach(fila => {
+            if (fila.innerText.includes(tiempoId)) {
+                filaDestino = fila;
+            }
+        });
+
+        if (filaDestino) {
+            filaDestino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Efecto visual momentáneo para indicar dónde estamos
+            filaDestino.style.backgroundColor = "rgba(108, 92, 231, 0.1)";
+            setTimeout(() => filaDestino.style.backgroundColor = "", 2000);
+        }
+    }, 500); // Pequeño retraso para dejar que la agenda se dibuje
 }

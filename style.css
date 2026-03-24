@@ -302,3 +302,117 @@ body {
     transform: scale(1.1);
     background: #d44c40;
 }
+/* --- EFECTO VISUAL PARA EL BOTÓN VOLVER A HOY --- */
+
+@keyframes pulse-orange {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 159, 67, 0.7); }
+  70% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(255, 159, 67, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 159, 67, 0); }
+}
+
+/* Esta clase se activará desde el JavaScript */
+.btn-alerta-hoy {
+    animation: pulse-orange 2s infinite !important;
+    border: 2px solid white !important;
+}
+#tablet-actions button {
+    height: 60px; /* Los hace más altos y fáciles de pulsar */
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.btn-action-tablet {
+    border: none;
+    border-radius: 15px;
+    color: white;
+    font-weight: 800;
+    font-size: 0.95rem;
+    padding: 18px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.1s;
+}
+
+.btn-action-tablet:active {
+    transform: scale(0.95); /* Efecto de pulsación */
+}
+/* --- MEJORA VISUAL DE LA CITA --- */
+
+/* El nombre del cliente en negro para diferenciarlo */
+/* El nombre del cliente: Más grande y legible */
+/* --- NUEVA ETIQUETA PARA EL NOMBRE DEL CLIENTE --- */
+
+.client-name-display {
+    cursor: pointer;
+    text-decoration: none; /* Quitamos el subrayado para que la etiqueta sea más limpia */
+    color: rgba(0, 0, 0, 0.85); /* Negro sólido y elegante */
+    font-size: 0.95rem;          /* Un tamaño equilibrado */
+    font-weight: 800;           /* Extra negrita */
+    
+    /* ESTO CREA LA CAJITA BLANCA SEMITRANSPARENTE */
+    background: rgba(255, 255, 255, 0.65); /* Blanco con 65% de opacidad */
+    padding: 6px 12px;           /* Espacio interno para que respire el texto */
+    border-radius: 8px;          /* Bordes redondeados y suaves */
+    
+    display: inline-block;       /* Solo ocupa el ancho del texto, no toda la línea */
+    margin-bottom: 8px;          /* Un poco más de aire con el servicio */
+    
+    /* Aseguramos que el texto largo no rompa la etiqueta */
+    max-width: 90%;             /* Evita que se pegue a los bordes de la celda */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;    
+    
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Una sombra muy suave para dar relieve */
+    transition: all 0.2s;
+}
+
+/* Efecto al pasar el ratón (o tocar en tablet) sobre el nombre */
+.client-name-display:hover {
+    background: rgba(255, 255, 255, 0.9); /* Se vuelve más blanco al interactuar */
+}
+
+/* El servicio sigue resaltando en blanco/claro debajo de la etiqueta */
+.service-text-display {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff; /* Blanco puro */
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0px 1px 3px rgba(0,0,0,0.3); /* Sombra para que resalte */
+}
+
+/* El icono de nota más discreto */
+.note-icon-mini {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-size: 0.8rem;
+    color: rgba(255, 217, 61, 0.9);
+}
+/* --- NUEVO: EFECTO DESTELLO PARA CITAS CON NOTA --- */
+.note-glow-indicator {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 10px;
+    height: 10px;
+    background-color: #fff200; /* Amarillo brillante */
+    border-radius: 50%;
+    box-shadow: 0 0 10px #fff200, 0 0 20px #fff200;
+    animation: notePulse 1.5s infinite;
+    z-index: 5;
+}
+
+@keyframes notePulse {
+    0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0.7); }
+    70% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 0 8px rgba(255, 242, 0, 0); }
+    100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0); }
+}

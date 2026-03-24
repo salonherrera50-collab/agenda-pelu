@@ -41,6 +41,11 @@
                 <label>IR A FECHA</label>
                 <input type="date" id="date-picker-side" onchange="goToDate(this.value)">
             </div>
+            <div style="margin-top: 10px;">
+    <button id="btn-hoy-rapido" onclick="resetearAHoy()" style="width:100%; padding:10px; background:#6c5ce7; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:8px; transition: 0.3s;">
+        <i class="fas fa-calendar-day"></i> VOLVER A HOY
+    </button>
+</div>
 
             <div class="stats-sidebar" style="margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 12px;">
                 <div style="margin-bottom: 10px;">
@@ -177,33 +182,55 @@
     </div>
 
     <div id="appointment-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <h3 id="modal-time-display">Cita</h3>
-            <form id="appointment-form">
-                <div class="field">
-                    <label>Cliente</label>
-                    <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)" autocomplete="off">
-                    <datalist id="list-nombres"></datalist>
-                </div>
-                <div class="field">
-                    <label>Móvil</label>
-                    <input type="tel" id="app-phone" required list="list-telefonos" autocomplete="off" oninput="autoFillName(this.value)">
-<datalist id="list-telefonos"></datalist>
-                </div>
-                <div class="field">
-                    <label>Servicio</label>
-                    <input type="text" id="app-service" required autocomplete="off">
-                </div>
-                <div class="field">
-    <label>Notas Cita</label>
-    <!-- Añadimos autocomplete="off" para que siempre esté vacío al abrirlo -->
-    <textarea id="app-notes" autocomplete="off"></textarea>
+    <div class="modal-content">
+        <span class="close-large" onclick="closeModal()">&times;</span>
+        <h3 id="modal-time-display" style="margin-bottom: 20px; color: var(--text);">Cita</h3>
+        
+        <form id="appointment-form">
+            <div class="field">
+                <label>Cliente</label>
+                <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)" autocomplete="off">
+                <datalist id="list-nombres"></datalist>
+            </div>
+
+            <div class="field">
+                <label>Móvil</label>
+                <input type="tel" id="app-phone" required list="list-telefonos" autocomplete="off" oninput="autoFillName(this.value)">
+                <datalist id="list-telefonos"></datalist>
+            </div>
+
+            <div class="field">
+                <label>Servicio</label>
+                <input type="text" id="app-service" required autocomplete="off">
+            </div>
+
+            <div class="field">
+                <label>Notas Cita</label>
+                <textarea id="app-notes" autocomplete="off" style="height: 80px;"></textarea>
+            </div>
+
+            <button type="button" onclick="quickBlock()" style="background:#57606f; color:white; margin-top:10px; width:100%; padding:14px; border:none; border-radius:12px; cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fas fa-ban"></i> BLOQUEAR ESTE TURNO
+            </button>
+
+            <div id="tablet-actions" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:20px; border-top:1px solid #eee; padding-top:20px; margin-bottom:15px;">
+                <button type="button" id="btn-confirmar-modal" class="btn-action-tablet" style="background:#05cd99;">
+                    <i class="fas fa-check-circle"></i> CONFIRMAR
+                </button>
+                <button type="button" id="btn-borrar-modal" class="btn-action-tablet" style="background:#ee5d50;">
+                    <i class="fas fa-trash-alt"></i> BORRAR
+                </button>
+            </div>
+
+            <button type="submit" class="btn-main" style="background:#4361ee; margin-top:10px;">
+                <i class="fas fa-save"></i> GUARDAR CAMBIOS
+            </button>
+        </form>
+    </div>
 </div>
 
-                <button type="button" onclick="quickBlock()" style="background:#57606f; color:white; margin-bottom:10px; width:100%; padding:12px; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">
-                    <i class="fas fa-ban"></i> BLOQUEAR ESTE TURNO
-                </button>
+<button type="button" onclick="quickBlock()" ...>BLOQUEAR TURNO</button>
+<button type="submit" class="btn-main">GUARDAR CITA</button>
 
                 <button type="submit" class="btn-main">GUARDAR CITA</button>
             </form>
