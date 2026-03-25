@@ -26,14 +26,14 @@
         </div>
     </div>
 
-    <header class="main-header">
-        <div class="logo"><i class="fas fa-cut"></i> <span>PELUQUERÍA <strong>PRO</strong></span></div>
-        <nav class="nav-menu">
-            <button class="nav-btn active" id="btn-nav-agenda" onclick="showTab('agenda')">AGENDA</button>
-            <button class="nav-btn" id="btn-nav-clientes" onclick="showTab('clientes')">CLIENTES</button>
-            <button class="nav-btn" id="btn-nav-gestion" onclick="showTab('gestion')"><i class="fas fa-cog"></i> GESTIÓN</button>
-        </nav>
-    </header>
+    <header class="main-header header-derecha">
+    <div class="logo"><i class="fas fa-cut"></i> <span>PELUQUERÍA <strong>PRO</strong></span></div>
+    <nav class="nav-menu-derecha">
+        <button class="nav-btn active" id="btn-nav-agenda" onclick="showTab('agenda')">AGENDA</button>
+        <button class="nav-btn" id="btn-nav-clientes" onclick="showTab('clientes')">CLIENTES</button>
+        <button class="nav-btn" id="btn-nav-gestion" onclick="showTab('gestion')"><i class="fas fa-cog"></i> GESTIÓN</button>
+    </nav>
+</header>
 
     <div class="app-container">
         <aside class="sidebar">
@@ -213,51 +213,60 @@
             <h3 id="modal-time-display" style="margin-bottom: 20px; color: var(--text);">Cita</h3>
             
             <form id="appointment-form" autocomplete="off">
-                <div class="field">
-                    <label>Cliente</label>
-                    <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)" autocomplete="off">
-                    <datalist id="list-nombres"></datalist>
-                </div>
-
-                <div class="field">
-                    <label>Móvil</label>
-                    <input type="tel" id="app-phone" required list="list-telefonos" autocomplete="off" oninput="autoFillName(this.value)">
-                    <datalist id="list-telefonos"></datalist>
-                </div>
-
-                <div class="field">
-                    <label>Servicio</label>
-                    <input type="text" id="app-service" required autocomplete="off">
-                </div>
-
-                <div class="field">
-                    <label>Notas Cita</label>
-                    <textarea id="app-notes" autocomplete="off" style="height: 80px;"></textarea>
-                </div>
-
-                <!-- 1. BOTÓN DE BLOQUEO (Ancho completo) -->
-                <button type="button" id="btn-bloquear-modal" onclick="quickBlock()" class="btn-main" style="background:#f0932b; width:100%; padding:14px; font-size:0.85rem; margin-top:15px; border-radius:12px; border:none; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <i class="fas fa-ban"></i> BLOQUEAR TURNO
-                </button>
-
-                <!-- 2. FILA DE 3 BOTONES (Debajo del bloqueo) -->
-                <div id="tablet-actions" style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 8px; margin-top: 10px;">
-                    
-                    <button type="button" id="btn-confirmar-modal" class="btn-main" style="background:#20bf6b; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; margin:0;">
-                        <i class="fas fa-check"></i> CONFIRMAR
-                    </button>
-
-                    <button type="button" id="btn-borrar-modal" class="btn-main" style="background:#eb4d4b; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; margin:0;">
-                        <i class="fas fa-trash"></i> BORRAR
-                    </button>
-
-                    <button type="submit" id="btn-guardar-cambios-modal" class="btn-main" style="background:#4361ee; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; margin:0;">
-                        <i class="fas fa-save"></i> GUARDAR
-                    </button>
-                </div>
-            </form> 
-        </div>
+    <div class="field">
+        <label>Cliente</label>
+        <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)" autocomplete="off">
+        <datalist id="list-nombres"></datalist>
     </div>
+
+    <div class="field">
+        <label>Móvil</label>
+        <input type="tel" id="app-phone" required list="list-telefonos" autocomplete="off" oninput="autoFillName(this.value)">
+        <datalist id="list-telefonos"></datalist>
+    </div>
+
+    <div class="field">
+        <label>Servicio</label>
+        <input type="text" id="app-service" required autocomplete="off">
+    </div>
+
+    <div class="field">
+        <label>Notas Cita</label>
+        <textarea id="app-notes" autocomplete="off" style="height: 80px;"></textarea>
+    </div>
+
+    <!-- GRUPO 1: BOTONES PARA CITA NUEVA (Apilados) -->
+    <div id="new-app-actions">
+        <button type="submit" id="btn-guardar-cambios-modal" class="btn-main" style="background:#4361ee; width:100%; padding:14px; margin-top:15px; border-radius:12px; border:none; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <i class="fas fa-save"></i> GUARDAR CITA
+        </button>
+
+        <button type="button" onclick="quickBlock()" class="btn-main" style="background:#f0932b; width:100%; padding:14px; margin-top:10px; border-radius:12px; border:none; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <i class="fas fa-ban"></i> BLOQUEAR TURNO
+        </button>
+    </div>
+
+    <!-- GRUPO 2: CITA YA CREADA (Fila única de 4 botones para Tablet horizontal) -->
+    <!-- GRUPO 2: CITA YA CREADA (Fila única de 3 botones para Tablet horizontal) -->
+<div id="tablet-actions" style="display: none; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px;">
+    
+    <!-- 1. Actualizar (Azul) -->
+    <button type="submit" id="btn-actualizar-modal" class="btn-main" style="background:#4361ee; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <i class="fas fa-sync-alt"></i> ADAPTAR
+    </button>
+
+    <!-- 2. Confirmar (Verde) -->
+    <button type="button" id="btn-confirmar-modal" class="btn-main" style="background:#20bf6b; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <i class="fas fa-check"></i> OK
+    </button>
+
+    <!-- 3. Borrar (Rojo) -->
+    <button type="button" id="btn-borrar-modal" class="btn-main" style="background:#eb4d4b; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <i class="fas fa-trash"></i> BORRAR
+    </button>
+
+</div>
+</form>
 
    <!-- 1. MODAL FICHA CLIENTE (CON AUTOCOMPLETE DESACTIVADO) -->
     <div id="cliente-modal" class="modal">

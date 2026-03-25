@@ -4,6 +4,7 @@ let currentDate = new Date();
 currentDate.setHours(0, 0, 0, 0);
 let isLogged = false;
 let currentCellId = null;
+let currentCitaId = null; // Esto permite diferenciar entre crear y editar
 let dbCitas = [];
 let dbClientes = [];
 let dbNotas = [];
@@ -493,7 +494,6 @@ function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
 function openAppModal(id, time, e) {
-    // 1. Evitamos que se abra si pulsamos iconos que no sean de edición (aunque ahora los hayamos quitado)
     if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
     
     currentCellId = id;
@@ -503,21 +503,32 @@ function openAppModal(id, time, e) {
     document.getElementById('appointment-form').reset();
     document.getElementById('modal-time-display').innerText = `${time} - E${esp}`;
     
-    const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
-    
-    // --- LÓGICA PARA BOTONES DE TABLET ---
-    const contenedorAcciones = document.getElementById('tablet-actions');
+    const grupoNuevaCita = document.getElementById('new-app-actions');
+    const grupoEdicionCita = document.getElementById('tablet-actions');
     const btnConf = document.getElementById('btn-confirmar-modal');
     const btnBorr = document.getElementById('btn-borrar-modal');
 
-    if (citaExistente) {
-        document.getElementById('app-name').value = citaExistente.nombre;
-        document.getElementById('app-phone').value = citaExistente.telefono;
-        document.getElementById('app-service').value = citaExistente.servicio;
-        document.getElementById('app-notes').value = citaExistente.notas;
+    // --- EL TRUCO PARA ELIMINAR EL DOBLE AVISO ---
+    // Clonamos el botón de borrar para eliminar cualquier evento "viejo" pegado a él
+    if (btnBorr) {
+        const nuevoBtnBorr = btnBorr.cloneNode(true);
+        btnBorr.parentNode.replaceChild(nuevoBtnBorr, btnBorr);
+    }
+    // Volvemos a capturar la referencia tras clonarlo
+    const btnBorrLimpio = document.getElementById('btn-borrar-modal');
 
-        // Si la cita existe, mostramos los botones de Confirmar/Borrar y les damos vida
-        if (contenedorAcciones) contenedorAcciones.style.display = 'grid';
+    const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
+
+    if (citaExistente) {
+        currentCitaId = citaExistente.id; 
+        
+        document.getElementById('app-name').value = citaExistente.nombre || "";
+        document.getElementById('app-phone').value = citaExistente.telefono || "";
+        document.getElementById('app-service').value = citaExistente.servicio || "";
+        document.getElementById('app-notes').value = citaExistente.notas || "";
+
+        if (grupoNuevaCita) grupoNuevaCita.style.display = 'none';
+        if (grupoEdicionCita) grupoEdicionCita.style.display = 'grid'; 
         
         if (btnConf) {
             btnConf.onclick = (event) => {
@@ -525,14 +536,20 @@ function openAppModal(id, time, e) {
                 closeModal();
             };
         }
-        if (btnBorr) {
-            btnBorr.onclick = (event) => {
-                deleteCita(citaExistente.id, event).then(() => closeModal());
+        
+        // Ahora asignamos el clic al botón recién limpiado
+        if (btnBorrLimpio) {
+            btnBorrLimpio.onclick = (event) => {
+                // Solo saldrá este mensaje una vez
+                if(confirm("¿Seguro que quieres borrar esta cita?")) {
+                    deleteCita(citaExistente.id, event).then(() => closeModal());
+                }
             };
         }
     } else {
-        // Si la celda está vacía, ocultamos los botones de gestión
-        if (contenedorAcciones) contenedorAcciones.style.display = 'none';
+        currentCitaId = null;
+        if (grupoNuevaCita) grupoNuevaCita.style.display = 'block';
+        if (grupoEdicionCita) grupoEdicionCita.style.display = 'none';
     }
 
     document.getElementById('appointment-modal').style.display = 'block';
@@ -1152,3 +1169,52 @@ async function deleteNote(id, fecha) {
         }
     }
 }
+async function guardarCitaFull(e) {
+    if (e) e.preventDefault(); // Evita que la página se recargue en la tablet
+
+    // 1. Recogemos los datos del formulario
+    const nombre = document.getElementById('app-name').value.toUpperCase();
+    const telefono = document.getElementById('app-phone').value;
+    const servicio = document.getElementById('app-service').value;
+    const notas = document.getElementById('app-notes').value;
+
+    // 2. Preparamos el objeto con la información
+    const datosCita = {
+        nombre: nombre,
+        telefono: telefono,
+        servicio: servicio,
+        notas: notas,
+        updatedAt: new Date() // Para saber cuándo se tocó por última vez
+    };
+
+    try {
+        if (currentCitaId) {
+            // --- CASO EDITAR (Botón ADAPTAR) ---
+            await db.collection("citas").doc(currentCitaId).update(datosCita);
+            console.log("Cita actualizada con éxito");
+        } else {
+            // --- CASO NUEVA (Botón GUARDAR CITA) ---
+            // Extraemos hora y espacio del ID de la celda (ej: cell-09:00-1)
+            const partes = currentCellId.split('-'); 
+            
+            await db.collection("citas").add({
+                ...datosCita,
+                fecha: getLocalDateString(currentDate),
+                hora: partes[1],
+                espacio: parseInt(partes[2]),
+                confirmada: false,
+                origen: 'gestionada'
+            });
+            console.log("Nueva cita creada con éxito");
+        }
+        
+        // Cerramos el modal tras el éxito
+        if (typeof closeModal === 'function') closeModal();
+        
+    } catch (error) {
+        console.error("Error en Firebase:", error);
+        alert("Error al guardar: Revisa tu conexión a internet.");
+    }
+}
+// Vinculamos el evento de envío del formulario a nuestra nueva función
+document.getElementById('appointment-form').onsubmit = guardarCitaFull;

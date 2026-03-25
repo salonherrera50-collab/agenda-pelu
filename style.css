@@ -18,23 +18,26 @@ body {
     overflow: hidden; 
 }
 
-.main-header {
-    display: flex;
-    justify-content: space-between; /* Esto empuja el logo a la izquierda y el nav a la derecha */
-    align-items: center;
-    padding: 0 20px;
-    height: 60px;
-    background: #fff;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+/* Forzar que el contenedor sea flexible y separe los elementos */
+.header-derecha {
+    display: flex !important;
+    justify-content: space-between !important; 
+    align-items: center !important;
+    width: 100% !important;
+    padding: 0 30px !important;
+    box-sizing: border-box !important;
 }
 
-.nav-menu {
-    display: flex;
-    gap: 10px; /* Espacio entre los botones */
-    margin-left: auto; /* Refuerzo para asegurar que se pegue a la derecha */
+/* Forzar que el menú use todo el espacio a su izquierda para empujarse a la derecha */
+.nav-menu-derecha {
+    display: flex !important;
+    margin-left: auto !important; 
+    gap: 15px !important;
+}
+
+/* Asegurarnos de que el logo se quede a la izquierda */
+.header-derecha .logo {
+    margin-right: auto !important;
 }
 
 .nav-btn {
