@@ -528,6 +528,12 @@ function filterClientes() {
     const q = document.getElementById('search-client').value.toUpperCase();
     const filtrados = dbClientes.filter(c => c.nombre.includes(q) || c.telefono.includes(q));
     renderClientes(filtrados);
+    if (q.length >= 3) {
+        buscarCitasProximas(q);
+    } else {
+        const resCont = document.getElementById('search-results-container');
+        if(resCont) resCont.style.display = 'none';
+    }
 }
 
 // --- 10. ESCUCHAS FIREBASE (TIEMPO REAL) ---
@@ -770,4 +776,239 @@ function resetearAHoy() {
             setTimeout(() => filaDestino.style.backgroundColor = "", 2000);
         }
     }, 500); // Pequeño retraso para dejar que la agenda se dibuje
+}
+async function buscarCitasProximas(criterio) {
+    if (!criterio || criterio.length < 3) {
+        document.getElementById('search-results-container').style.display = 'none';
+        return;
+    }
+
+    const hoyStr = getLocalDateString(new Date());
+    const anioActual = new Date().getFullYear();
+    const finAnioStr = `${anioActual}-12-31`;
+
+    try {
+        const snapshot = await db.collection("citas")
+            .where("fecha", ">=", hoyStr)
+            .where("fecha", "<=", finAnioStr)
+            .get();
+
+        const contenedor = document.getElementById('citas-encontradas-list');
+        const panelInfo = document.getElementById('search-results-container');
+        contenedor.innerHTML = "";
+        
+        let encontradas = [];
+
+        snapshot.forEach(doc => {
+            const cita = doc.data();
+            const nombreCita = (cita.nombre || "").toUpperCase();
+            const tlfCita = (cita.telefono || "");
+            const busqueda = criterio.toUpperCase();
+
+            if (nombreCita.includes(busqueda) || tlfCita.includes(busqueda)) {
+                encontradas.push(cita);
+            }
+        });
+
+       if (encontradas.length > 0) {
+            encontradas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+
+            encontradas.forEach(cita => {
+                const item = document.createElement('div');
+                item.style = "padding:12px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; gap:10px;";
+                const fechaCorta = cita.fecha.split('-').reverse().slice(0,2).join('/');
+                
+                item.innerHTML = `
+                    <div style="flex: 1;">
+                        <span style="background:#6c5ce7; color:white; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; margin-right:8px;">${fechaCorta}</span>
+                        <b style="color:#2d3436;">${cita.hora}h</b>
+                        <div style="font-size:0.85rem; color:#666; margin-top:4px; font-weight: 500;">${cita.nombre}</div>
+                        <div style="font-size:0.75rem; color:#999;"><i class="fas fa-cut"></i> ${cita.servicio}</div>
+                    </div>
+                    <div style="text-align:right; display: flex; flex-direction: column; gap: 5px; min-width: 90px;">
+                        <span style="color:${cita.confirmada ? '#4cd137' : '#ff9f43'}; font-size:0.65rem; font-weight:800; text-transform: uppercase;">
+                            ${cita.confirmada ? 'Confirmada' : 'Pendiente'}
+                        </span>
+                        <button onclick="goToDate('${cita.fecha}'); cerrarBuscador();" style="background:#6c5ce7; color:white; border:none; padding:6px 4px; border-radius:8px; cursor:pointer; font-size:0.65rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:4px;">
+                            <i class="fas fa-calendar-check"></i> IR AL DÍA
+                        </button>
+                    </div>
+                `;
+                contenedor.appendChild(item);
+            });
+            panelInfo.style.display = 'block';
+        } else {
+            panelInfo.style.display = 'block'; 
+            contenedor.innerHTML = `
+                <div style="text-align:center; padding:10px 5px; color:#636e72;">
+                    <div style="margin-bottom:8px;">
+                        <i class="fas fa-search" style="font-size:1.2rem; color:#dfe6e9;"></i>
+                        <b style="display:block; font-size:0.9rem; color:#2d3436; margin-top:5px;">Sin citas próximas</b>
+                    </div>
+                    
+                    <div style="background:#f1f2f6; padding:12px; border-radius:12px; border:1px solid #e1e1e1; text-align: left;">
+                        <p style="font-size:0.7rem; margin-bottom:8px; font-weight:bold; text-align:center; color:#6c5ce7; text-transform:uppercase;">Agendar: ${criterio}</p>
+                        
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:0.65rem; color:#7f8c8d; font-weight:bold; margin-left:2px;">FECHA</label>
+                            <input type="date" id="new-app-date" value="${getLocalDateString(new Date())}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ccc; font-size:0.8rem; background:white;">
+                        </div>
+                        
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px;">
+                            <div>
+                                <label style="font-size:0.65rem; color:#7f8c8d; font-weight:bold; margin-left:2px;">HORA</label>
+                                <select id="new-app-time" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ccc; font-size:0.8rem; background:white;">
+                                    ${generarOpcionesHoras()}
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size:0.65rem; color:#7f8c8d; font-weight:bold; margin-left:2px;">ESPACIO</label>
+                                <select id="new-app-space" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ccc; font-size:0.8rem; background:white;">
+                                    <option value="1">E1</option><option value="2">E2</option>
+                                    <option value="3">E3</option><option value="4">E4</option>
+                                    <option value="5">E5</option><option value="6">E6</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button onclick="confirmarNuevaCitaDesdeBusqueda('${criterio}')" style="background:#20bf6b; color:white; border:none; width:100%; padding:10px; border-radius:10px; cursor:pointer; font-weight:800; font-size:0.75rem; display:flex; align-items:center; justify-content:center; gap:6px; transition:0.2s; box-shadow:0 3px 6px rgba(32, 191, 107, 0.2);">
+                            <i class="fas fa-plus"></i> AGENDAR AHORA
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error("Error en buscador de citas:", error);
+    }
+}
+
+// --- FUNCIONES DE CONTROL DEL MODAL ---
+
+function abrirBuscadorCitas() {
+    const modal = document.getElementById('search-results-container');
+    const input = document.getElementById('input-busqueda-citas');
+    const lista = document.getElementById('citas-encontradas-list');
+    
+    if(modal) modal.style.display = 'block';
+    if(input) input.value = ""; 
+    if(lista) lista.innerHTML = "<p style='text-align:center; color:#999; font-size:0.8rem; padding:20px;'>Escribe nombre o teléfono...</p>";
+    
+    setTimeout(() => { if(input) input.focus(); }, 100);
+}
+
+function cerrarBuscador() {
+    const modal = document.getElementById('search-results-container');
+    if(modal) modal.style.display = 'none';
+}
+
+function ejecutarBusquedaCitas(valor) {
+    const criterio = valor.trim().toUpperCase();
+    if (criterio.length >= 3) {
+        buscarCitasProximas(criterio);
+    } else {
+        const lista = document.getElementById('citas-encontradas-list');
+        if(lista) lista.innerHTML = "";
+    }
+}
+// 1. Función para abrir el modal flotante
+function abrirBuscadorCitas() {
+    const modal = document.getElementById('search-results-container');
+    const input = document.getElementById('input-busqueda-citas');
+    const lista = document.getElementById('citas-encontradas-list');
+    
+    if(modal) modal.style.display = 'block';
+    if(input) input.value = ""; 
+    if(lista) lista.innerHTML = "<p style='text-align:center; color:#999; font-size:0.8rem; padding:20px;'>Escribe nombre o teléfono para buscar...</p>";
+    
+    // Ponemos el foco en el input para escribir directo
+    setTimeout(() => { if(input) input.focus(); }, 100);
+}
+
+// 2. Función para cerrar el modal
+function cerrarBuscador() {
+    const modal = document.getElementById('search-results-container');
+    if(modal) modal.style.display = 'none';
+}
+
+// 3. Función puente que conecta el input con tu buscador de Firebase
+function ejecutarBusquedaCitas(valor) {
+    const criterio = valor.trim().toUpperCase();
+    // Solo buscamos si hay 3 o más letras para no saturar Firebase
+    if (criterio.length >= 3) {
+        buscarCitasProximas(criterio);
+    } else {
+        const lista = document.getElementById('citas-encontradas-list');
+        if(lista) lista.innerHTML = "";
+    }
+}
+function prepararNuevaCitaDesdeBusqueda(nombreBusqueda) {
+    // 1. Cerramos el buscador para ver la agenda
+    cerrarBuscador();
+    
+    // 2. Buscamos si el cliente ya existe en tu base de datos para sacar su teléfono
+    const cliente = dbClientes.find(c => c.nombre === nombreBusqueda);
+    const telefono = cliente ? cliente.telefono : "";
+
+    // 3. Abrimos el modal de cita en el primer hueco libre (Espacio 1) de la hora actual
+    // o simplemente en la hora que prefieras por defecto (ej: 09:00)
+    const horaDefecto = "09:00";
+    const celdaId = `cell-${horaDefecto}-1`;
+    
+    // Usamos tu función existente para abrir el modal
+    openAppModal(celdaId, horaDefecto);
+
+    // 4. Rellenamos los campos automáticamente
+    setTimeout(() => {
+        document.getElementById('app-name').value = nombreBusqueda;
+        document.getElementById('app-phone').value = telefono;
+        document.getElementById('app-service').focus(); // Ponemos el foco en servicio para ir rápido
+    }, 200);
+}
+// Genera las horas de 09:00 a 20:00 para el select
+// Generador de horas ultra-compacto
+function generarOpcionesHoras() {
+    let html = "";
+    for (let h = 9; h <= 20; h++) {
+        ['00', '30'].forEach(m => {
+            if (h === 20 && m === '30') return;
+            const t = `${h.toString().padStart(2, '0')}:${m}`;
+            html += `<option value="${t}">${t}</option>`;
+        });
+    }
+    return html;
+}
+
+// Función para procesar la nueva cita
+function confirmarNuevaCitaDesdeBusqueda(nombre) {
+    const fecha = document.getElementById('new-app-date').value;
+    const hora = document.getElementById('new-app-time').value;
+    const espacio = document.getElementById('new-app-space').value;
+
+    if(!fecha) return;
+
+    // 1. Cerramos buscador
+    cerrarBuscador();
+
+    // 2. Viajamos a la fecha
+    const d = fecha.split('-');
+    currentDate = new Date(d[0], d[1]-1, d[2]);
+    updateDateDisplay();
+    obtenerCitasFirebase();
+
+    // 3. Abrimos el modal oficial
+    const cellId = `cell-${hora}-${espacio}`;
+    openAppModal(cellId, hora);
+
+    // 4. Autorrelleno de datos (si el cliente ya existe en dbClientes)
+    setTimeout(() => {
+        const inputNombre = document.getElementById('app-name');
+        const inputTlf = document.getElementById('app-phone');
+        if(inputNombre) inputNombre.value = nombre;
+        
+        const clienteFound = dbClientes.find(c => c.nombre.toUpperCase() === nombre.toUpperCase());
+        if(clienteFound && inputTlf) inputTlf.value = clienteFound.telefono;
+        
+        document.getElementById('app-service').focus();
+    }, 300);
 }

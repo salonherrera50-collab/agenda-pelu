@@ -48,15 +48,32 @@
 </div>
 
             <div class="stats-sidebar" style="margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 12px;">
-                <div style="margin-bottom: 10px;">
-                    <small style="color: #666;">CITAS HOY</small>
-                    <div id="total-citas-count" style="font-size: 1.5rem; font-weight: 800; color: #2d3436;">0</div>
-                </div>
-                <div>
-                    <small style="color: #666;">CONFIRMADAS</small>
-                    <div id="confirmadas-count" style="font-size: 1.5rem; font-weight: 800; color: #4cd137;">0</div>
-                </div>
-            </div>
+    <div style="margin-bottom: 10px;">
+        <small style="color: #666;">CITAS HOY</small>
+        <div id="total-citas-count" style="font-size: 1.5rem; font-weight: 800; color: #2d3436;">0</div>
+    </div>
+    <div>
+        <small style="color: #666;">CONFIRMADAS</small>
+        <div id="confirmadas-count" style="font-size: 1.5rem; font-weight: 800; color: #4cd137;">0</div>
+    </div>
+</div>
+
+<div style="margin-top: 15px;">
+    <button onclick="abrirBuscadorCitas()" style="width:100%; padding:12px; background:#2d3436; color:white; border:none; border-radius:12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:8px; transition: 0.3s;">
+        <i class="fas fa-search"></i> BUSCAR CITAS
+    </button>
+</div>
+
+<div id="search-results-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:400px; background:white; z-index:10000; padding:20px; border-radius:20px; box-shadow:0 15px-50px rgba(0,0,0,0.4); border-top: 6px solid #6c5ce7;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0; color:#6c5ce7; font-size:1.1rem;">Buscador de Clientas</h3>
+        <button onclick="cerrarBuscador()" style="background:#eee; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer;">&times;</button>
+    </div>
+    <input type="text" id="input-busqueda-citas" placeholder="Nombre o teléfono..." oninput="ejecutarBusquedaCitas(this.value)" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; font-size:16px;">
+    <div id="citas-encontradas-list" style="max-height:300px; overflow-y:auto;">
+        </div>
+</div>
+<div class="notes-sidebar-section" style="margin-top: 20px;">
 
             <div class="notes-sidebar-section" style="margin-top: 20px;">
                 <label style="font-weight: 800; font-size: 0.7rem; color: #999;">NOTAS DEL DÍA</label>
@@ -101,6 +118,14 @@
                         <tbody id="clientes-list-body"></tbody>
                     </table>
                 </div>
+                <div id="search-results-container" style="display:none; margin-top:20px; background:white; padding:20px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); border-left: 5px solid #6c5ce7;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0; color:#6c5ce7; font-size:1.1rem;"><i class="fas fa-calendar-alt"></i> CITAS PROGRAMADAS</h3>
+        <button type="button" onclick="document.getElementById('search-results-container').style.display='none'" style="background:#eee; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer;">&times;</button>
+    </div>
+    <div id="citas-encontradas-list" style="max-height:300px; overflow-y:auto;">
+        </div>
+</div>
             </section>
 
             <section id="gestion" class="tab-content" style="display:none;">
