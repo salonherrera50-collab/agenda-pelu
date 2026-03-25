@@ -117,9 +117,9 @@ body {
 
 .grid-header, .agenda-row { 
     display: grid; 
-    /* Cambiamos 1fr por 160px fijos */
-    grid-template-columns: 90px repeat(6, 160px); 
-    width: max-content; 
+    /* La hora mide 80px y los 6 puestos se reparten el resto (1fr cada uno) */
+    grid-template-columns: 80px repeat(6, 1fr); 
+    width: 100%; 
     border-bottom: 2px solid #ced4da; 
 }
 
@@ -152,12 +152,12 @@ body {
 .sem-red { background: #ee5d50 !important; color: white !important; }
 
 .slot-cell { 
-    padding: 8px; 
+    padding: 4px; /* Reducimos padding para ganar espacio interior */
     position: relative; 
     border-right: 2px solid #ced4da;
     cursor: pointer;
     overflow: hidden; 
-    min-width: 160px; 
+    min-width: 0; /* Permite que la celda se encoja si es necesario */
     box-sizing: border-box;
 }
 .slot-cell:last-child {
@@ -356,50 +356,34 @@ body {
 
 .client-name-display {
     cursor: pointer;
-    text-decoration: none;
     color: rgba(0, 0, 0, 0.85);
-    
-    /* --- CAMBIO AQUÍ: Texto fluido --- */
-    /* Mínimo 0.65rem, Ideal 2.5% del ancho de la celda, Máximo 0.95rem */
-    font-size: clamp(0.65rem, 2.5cqw, 0.95rem); 
+    /* Texto más pequeño para que quepa en celdas estrechas */
+    font-size: clamp(0.6rem, 1.2vw, 0.85rem); 
     font-weight: 800;
-    
-    background: rgba(255, 255, 255, 0.75);
-    padding: 4px 8px; /* Reducimos un poco el padding para ganar espacio */
-    border-radius: 8px;
-    
-    display: block; /* Cambiado a block para centrarlo mejor */
-    margin: 0 auto 6px auto; 
-    
-    /* Control de desbordamiento */
-    max-width: 95%; 
+    background: rgba(255, 255, 255, 0.8);
+    padding: 3px 5px;
+    border-radius: 6px;
+    display: block;
+    margin: 0 auto 4px auto;
+    width: 95%;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;    
-    
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    transition: all 0.2s;
+    text-overflow: ellipsis;
     text-align: center;
 }
 
 .service-text-display {
     display: block;
-    
-    /* --- CAMBIO AQUÍ: Texto fluido para el servicio --- */
-    font-size: clamp(0.75rem, 3cqw, 1.1rem);
-    
+    /* El servicio también se encoge un poco */
+    font-size: clamp(0.7rem, 1.5vw, 1rem);
     font-weight: 800;
     color: #ffffff;
-    line-height: 1;
     text-transform: uppercase;
-    text-shadow: 0px 1px 3px rgba(0,0,0,0.3);
-    
-    /* Control de desbordamiento */
+    text-align: center;
     width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-align: center;
 }
 
 /* --- ESTO ES VITAL PARA QUE EL TEXTO NO EMPUJE LA CELDA --- */
