@@ -357,7 +357,6 @@ body {
 .client-name-display {
     cursor: pointer;
     color: rgba(0, 0, 0, 0.85);
-    /* Texto más pequeño para que quepa en celdas estrechas */
     font-size: clamp(0.6rem, 1.2vw, 0.85rem); 
     font-weight: 800;
     background: rgba(255, 255, 255, 0.8);
@@ -370,6 +369,24 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: center;
+
+    /* --- ESTO ES LO NUEVO --- */
+    transition: all 0.2s ease-in-out; /* Hace que el cambio sea suave */
+    border: 1px solid transparent;    /* Prepara el borde para el cambio */
+}
+
+/* EL EFECTO QUE BUSCABAS AL PASAR EL RATÓN */
+.client-name-display:hover {
+    background: rgba(255, 255, 255, 1);    /* Se vuelve blanco puro (brilla) */
+    color: #000;                          /* El texto se pone negro intenso */
+    transform: scale(1.03);               /* Crece un pelín (efecto 3D) */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);/* Crea una sombrita para que "flote" */
+}
+
+/* EFECTO CUANDO TOCAS CON EL DEDO (PARA TU IPHONE Y TABLET) */
+.client-name-display:active {
+    transform: scale(0.95);               /* Se hunde un poco al tocarlo */
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .service-text-display {
