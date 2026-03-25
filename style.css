@@ -110,14 +110,17 @@ body {
     background: var(--white); 
     border-radius: 30px; 
     box-shadow: 0 20px 40px rgba(0,0,0,0.03); 
-    overflow: hidden; 
+    overflow-x: auto; /* Permite scroll lateral */
+    display: block;
+    -webkit-overflow-scrolling: touch; 
 }
 
-.grid-header { 
+.grid-header, .agenda-row { 
     display: grid; 
-    grid-template-columns: 90px repeat(6, 1fr); 
-    background: #fbfcfe; 
-    border-bottom: 2px solid #ced4da; /* Línea horizontal de cabecera más gruesa */
+    /* Cambiamos 1fr por 160px fijos */
+    grid-template-columns: 90px repeat(6, 160px); 
+    width: max-content; 
+    border-bottom: 2px solid #ced4da; 
 }
 
 .h-cell { 
@@ -151,8 +154,11 @@ body {
 .slot-cell { 
     padding: 8px; 
     position: relative; 
-    border-right: 2px solid #ced4da; /* Línea vertical entre empleados más gruesa */
-    cursor: pointer; 
+    border-right: 2px solid #ced4da;
+    cursor: pointer;
+    overflow: hidden; 
+    min-width: 160px; 
+    box-sizing: border-box;
 }
 .slot-cell:last-child {
     border-right: none;
@@ -451,4 +457,11 @@ body {
     color: white;
     font-weight: bold;
     cursor: pointer;
+}
+@media (max-width: 600px) {
+    .grid-header, .agenda-row { 
+        grid-template-columns: 70px repeat(6, 120px); 
+    }
+    .slot-cell { min-width: 120px; }
+    .time-label { font-size: 0.9rem; }
 }
