@@ -422,3 +422,27 @@ body {
     }
     .slot-cell { min-width: 120px; }
 }
+/* Forzar que la navegación no desaparezca */
+nav {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: white; /* O el color de tu app */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    width: 100%;
+}
+
+/* Ajuste para tablets: Evitar que el cuerpo de la web empuje la barra fuera */
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Evita el scroll lateral que descuadra todo */
+    height: 100%;
+}
+
+/* Contenedor principal para que el scroll sea interno */
+.main-container {
+    height: calc(100vh - 60px); /* Altura total menos la barra de pestañas */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Scroll suave en iPad/Tablet */
+}

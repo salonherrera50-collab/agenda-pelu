@@ -304,7 +304,7 @@ if (appForm) {
 
         let promesaCita;
         if (citaExistente) {
-            promesaCita = db.collection("citas").doc(citaExistente.id).set(datosCita, { merge: true });
+    if (contenedorAcciones) contenedorAcciones.style.display = 'grid'; // Asegúrate que diga 'grid'
         } else {
             promesaCita = db.collection("citas").add(datosCita);
         }
