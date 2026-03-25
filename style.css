@@ -350,43 +350,61 @@ body {
 
 .client-name-display {
     cursor: pointer;
-    text-decoration: none; /* Quitamos el subrayado para que la etiqueta sea más limpia */
-    color: rgba(0, 0, 0, 0.85); /* Negro sólido y elegante */
-    font-size: 0.95rem;          /* Un tamaño equilibrado */
-    font-weight: 800;           /* Extra negrita */
+    text-decoration: none;
+    color: rgba(0, 0, 0, 0.85);
     
-    /* ESTO CREA LA CAJITA BLANCA SEMITRANSPARENTE */
-    background: rgba(255, 255, 255, 0.65); /* Blanco con 65% de opacidad */
-    padding: 6px 12px;           /* Espacio interno para que respire el texto */
-    border-radius: 8px;          /* Bordes redondeados y suaves */
+    /* --- CAMBIO AQUÍ: Texto fluido --- */
+    /* Mínimo 0.65rem, Ideal 2.5% del ancho de la celda, Máximo 0.95rem */
+    font-size: clamp(0.65rem, 2.5cqw, 0.95rem); 
+    font-weight: 800;
     
-    display: inline-block;       /* Solo ocupa el ancho del texto, no toda la línea */
-    margin-bottom: 8px;          /* Un poco más de aire con el servicio */
+    background: rgba(255, 255, 255, 0.75);
+    padding: 4px 8px; /* Reducimos un poco el padding para ganar espacio */
+    border-radius: 8px;
     
-    /* Aseguramos que el texto largo no rompa la etiqueta */
-    max-width: 90%;             /* Evita que se pegue a los bordes de la celda */
+    display: block; /* Cambiado a block para centrarlo mejor */
+    margin: 0 auto 6px auto; 
+    
+    /* Control de desbordamiento */
+    max-width: 95%; 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;    
     
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Una sombra muy suave para dar relieve */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     transition: all 0.2s;
+    text-align: center;
 }
 
-/* Efecto al pasar el ratón (o tocar en tablet) sobre el nombre */
-.client-name-display:hover {
-    background: rgba(255, 255, 255, 0.9); /* Se vuelve más blanco al interactuar */
-}
-
-/* El servicio sigue resaltando en blanco/claro debajo de la etiqueta */
 .service-text-display {
     display: block;
-    font-size: 1.15rem;
+    
+    /* --- CAMBIO AQUÍ: Texto fluido para el servicio --- */
+    font-size: clamp(0.75rem, 3cqw, 1.1rem);
+    
     font-weight: 800;
-    color: #ffffff; /* Blanco puro */
+    color: #ffffff;
     line-height: 1;
     text-transform: uppercase;
-    text-shadow: 0px 1px 3px rgba(0,0,0,0.3); /* Sombra para que resalte */
+    text-shadow: 0px 1px 3px rgba(0,0,0,0.3);
+    
+    /* Control de desbordamiento */
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+/* --- ESTO ES VITAL PARA QUE EL TEXTO NO EMPUJE LA CELDA --- */
+.occupied {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    overflow: hidden; /* No permite que el contenido agrande la caja */
+    container-type: inline-size; /* Activa el auto-ajuste de texto superior */
 }
 
 /* El icono de nota más discreto */
@@ -415,4 +433,22 @@ body {
     0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0.7); }
     70% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 0 8px rgba(255, 242, 0, 0); }
     100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0); }
+}
+/* Ajuste específico para tablets */
+.agenda-grid {
+    display: table; /* Fuerza el comportamiento de tabla rígida */
+    table-layout: fixed;
+    width: 100%;
+    min-width: 900px; /* Asegura que los puestos tengan su espacio */
+}
+
+/* Para que los botones del modal sean fáciles de pulsar con el dedo en la K13 */
+.btn-action-tablet {
+    padding: 15px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
 }
