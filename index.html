@@ -286,15 +286,17 @@
     
     <!-- 3. MODAL NOTAS (CON AUTOCOMPLETE DESACTIVADO) -->
     <div id="note-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeNoteModal()">&times;</span>
-            <h3>Nueva Nota del Día</h3>
-            <form id="note-form" autocomplete="off">
-                <div class="field"><textarea id="note-text-input"></textarea></div>
-                <button onclick="saveNote()" class="btn-main">AÑADIR</button>
-            </form>
+    <div class="modal-content">
+        <span class="close" onclick="closeNoteModal()">&times;</span>
+        <h3>Nueva Nota del Día</h3>
+        <div class="field">
+            <!-- Quitamos el form, dejamos solo el textarea -->
+            <textarea id="note-text-input" placeholder="Escribe aquí..."></textarea>
         </div>
+        <!-- Botón con ID limpio y sin onclick (lo daremos por JS) -->
+        <button type="button" id="btn-guardar-nota-fijo" class="btn-main">AÑADIR NOTA</button>
     </div>
+</div>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>

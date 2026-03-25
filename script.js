@@ -98,6 +98,7 @@ function goToDate(dateValue) {
     updateDateDisplay();
     obtenerCitasFirebase();
     obtenerNotasFirebase();
+    loadDailyNotes(nuevaFecha);
 }
 
 function changeDate(d) {
@@ -413,16 +414,44 @@ async function deleteCli(id) {
 }
 
 // --- 7. NOTAS Y BLOQUEOS ---
-async function saveNote() {
-    const txt = document.getElementById('note-text-input').value;
-    if(txt) {
-        await db.collection("notas").add({
-            // CAMBIO AQUÍ: Usamos tu función local en lugar de toISOString
-            fecha: getLocalDateString(currentDate), 
-            texto: txt
+async function saveNote(event) {
+    // 1. EVITAR QUE LA APP SE RECARGUE Y TE ECHE A GOOGLE
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const noteInput = document.getElementById('note-text-input');
+    const texto = noteInput.value.trim();
+
+    if (!texto) {
+        alert("Escribe algo en la nota antes de guardar.");
+        return;
+    }
+
+    try {
+        // 2. GUARDAR EN FIREBASE (Asegúrate de que la colección sea 'dailyNotes')
+        // Usamos la fecha actual para que la nota se guarde en el día correcto
+        const fechaHoy = document.getElementById('date-picker-side').value; 
+
+        await db.collection("dailyNotes").add({
+            texto: texto,
+            fecha: fechaHoy,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
-        document.getElementById('note-text-input').value = "";
+
+        // 3. LIMPIAR Y CERRAR SIN RECARGAR
+        noteInput.value = "";
         closeNoteModal();
+        
+        // Si tienes una función que refresca la lista de notas, llámala aquí
+        if (typeof loadDailyNotes === "function") {
+            loadDailyNotes(fechaHoy);
+        }
+
+    } catch (error) {
+        console.error("Error al guardar la nota:", error);
+        alert("No se pudo guardar la nota. Revisa tu conexión.");
     }
 }
 
@@ -537,75 +566,72 @@ function filterClientes() {
 }
 
 // --- 10. ESCUCHAS FIREBASE (TIEMPO REAL) ---
+
 function obtenerCitasFirebase() {
     if (unsubscribeCitas) unsubscribeCitas();
-
     const dateStr = getLocalDateString(currentDate);
     unsubscribeCitas = db.collection("citas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbCitas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // 1. Dibuja la agenda del día (lo que ya hacía)
         buildAgenda();
-
-        // 2. NUEVO: Lanza la actualización de las estadísticas anuales 
-        // para que los contadores de Gestión cambien al instante
-        if (typeof actualizarEstadisticasAnuales === "function") {
-            actualizarEstadisticasAnuales();
-        }
+        if (typeof actualizarEstadisticasAnuales === "function") actualizarEstadisticasAnuales();
     });
 }
+
 function obtenerClientesFirebase() {
     db.collection("clientes").onSnapshot((snapshot) => {
-        // 1. Extraemos los datos de Firebase
         let lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // 2. ORDENAR: Alfabéticamente por nombre
-        lista.sort((a, b) => {
-            const nombreA = (a.nombre || "").toUpperCase();
-            const nombreB = (b.nombre || "").toUpperCase();
-            return nombreA.localeCompare(nombreB);
-        });
-
-        // 3. Guardamos en la variable global
+        lista.sort((a, b) => (a.nombre || "").toUpperCase().localeCompare((b.nombre || "").toUpperCase()));
         dbClientes = lista;
-
-        // 4. Dibujamos la tabla de la pestaña Clientes
         renderClientes();
-
-        // 5. ACTUALIZAMOS LOS DOS DESPLEGABLES (Datalists)
-        const datalistNombres = document.getElementById('list-nombres');
-        const datalistTelefonos = document.getElementById('list-telefonos');
-
-        // Llenar sugerencias de Nombres
-        if (datalistNombres) {
-            datalistNombres.innerHTML = dbClientes
-                .map(c => `<option value="${c.nombre}">`)
-                .join('');
-        }
-        
-        // Llenar sugerencias de Teléfonos (NUEVO)
-        if (datalistTelefonos) {
-            datalistTelefonos.innerHTML = dbClientes
-                .filter(c => c.telefono) // Solo si el cliente tiene teléfono
-                .map(c => `<option value="${c.telefono}">`)
-                .join('');
-        }
+        const dN = document.getElementById('list-nombres');
+        const dT = document.getElementById('list-telefonos');
+        if (dN) dN.innerHTML = dbClientes.map(c => `<option value="${c.nombre}">`).join('');
+        if (dT) dT.innerHTML = dbClientes.filter(c => c.telefono).map(c => `<option value="${c.telefono}">`).join('');
     });
 }
 
+/** 
+ * REPARACIÓN: Función unificada de Notas.
+ * Usa la colección 'dailyNotes' que es la que configuramos para evitar recargas.
+ */
 function obtenerNotasFirebase() {
     if (unsubscribeNotas) unsubscribeNotas();
-
+    
+    // IMPORTANTE: Asegúrate de que esta fecha coincida con la que ves en el calendario lateral
     const dateStr = getLocalDateString(currentDate);
-    unsubscribeNotas = db.collection("notas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
+    
+    unsubscribeNotas = db.collection("dailyNotes").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbNotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const container = document.getElementById('daily-notes-container');
-        if(container) container.innerHTML = dbNotas.map(n => `
-            <div class="note-item" style="background:#fff9c4; padding:8px; margin-top:5px; border-radius:5px; font-size:0.75rem; display:flex; justify-content:space-between; border:1px solid #f1e689;">
-                <span>${n.texto}</span>
-                <i class="fas fa-trash" onclick="eliminarNota('${n.id}')" style="color:red; cursor:pointer;"></i>
+        
+        if (!container) return;
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="font-size:0.7rem; color:#999; text-align:center; padding:10px;">No hay notas hoy</p>';
+            return;
+        }
+
+        container.innerHTML = dbNotas.map(n => `
+            <div class="note-item" style="background:#fff9c4; padding:8px; margin-top:5px; border-radius:10px; font-size:0.75rem; display:flex; justify-content:space-between; align-items:center; border:1px solid #f1e689; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <span style="flex:1;">${n.texto}</span>
+                <i class="fas fa-trash" onclick="eliminarNota('${n.id}')" style="color:#ee5d50; cursor:pointer; padding:5px;"></i>
             </div>`).join('');
     });
+}
+
+/**
+ * REPARACIÓN: Función para eliminar notas corregida para apuntar a 'dailyNotes'
+ */
+async function eliminarNota(id) {
+    if (confirm("¿Borrar esta nota?")) {
+        try {
+            await db.collection("dailyNotes").doc(id).delete();
+            // No hace falta recargar, onSnapshot lo detecta solo
+        } catch (e) {
+            console.error("Error al borrar nota:", e);
+            alert("Error al borrar");
+        }
+    }
 }
 
 function obtenerBloqueosFirebase() {
@@ -655,11 +681,41 @@ async function purgeAppointments() {
 }
 
 function getLocalDateString(date) {
+    if (!(date instanceof Date)) date = new Date();
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 }
+
+// --- 11. GESTIÓN MANUAL DEL BOTÓN DE NOTAS (ANTI-RECARGA) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const btnNota = document.getElementById('btn-guardar-nota-fijo');
+    if (btnNota) {
+        btnNota.onclick = async (e) => {
+            e.preventDefault(); 
+            const input = document.getElementById('note-text-input');
+            const texto = input.value.trim();
+            const fechaActual = document.getElementById('date-picker-side').value;
+
+            if (!texto) return;
+
+            try {
+                await db.collection("dailyNotes").add({
+                    texto: texto,
+                    fecha: fechaActual,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                input.value = "";
+                closeNoteModal();
+                // Al usar onSnapshot, la nota aparecerá sola inmediatamente
+            } catch (error) {
+                console.error("Error al guardar nota:", error);
+                alert("Error al conectar con la base de datos");
+            }
+        };
+    }
+});
 // Función para crear administradores (faltaba en tu script)
 async function saveUser() {
     const user = document.getElementById('new-user').value.trim();
@@ -1011,4 +1067,88 @@ function confirmarNuevaCitaDesdeBusqueda(nombre) {
         
         document.getElementById('app-service').focus();
     }, 300);
+}
+// Este bloque gestiona el guardado de notas sin recargas
+document.addEventListener('DOMContentLoaded', () => {
+    const btnNota = document.getElementById('btn-guardar-nota-fijo');
+    
+    if (btnNota) {
+        btnNota.onclick = async (e) => {
+            e.preventDefault(); // BLOQUEO ANTI-RECARGA
+            
+            const input = document.getElementById('note-text-input');
+            const texto = input.value.trim();
+            // Cogemos la fecha que esté marcada en el calendario de la izquierda
+            const fecha = document.getElementById('date-picker-side').value;
+
+            if (!texto) return;
+
+            try {
+                // GUARDAR EN FIREBASE
+                await db.collection("dailyNotes").add({
+                    texto: texto,
+                    fecha: fecha,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                console.log("Nota guardada");
+                input.value = ""; // Limpiar el texto
+                closeNoteModal(); // Cerrar ventana
+                
+                // REFRESCAR LA LISTA (Llamamos a tu función de carga)
+                if (typeof loadDailyNotes === 'function') {
+                    loadDailyNotes(fecha);
+                }
+
+            } catch (error) {
+                console.error("Error al guardar nota:", error);
+                alert("Error al conectar con la base de datos");
+            }
+        };
+    }
+});
+// FUNCIÓN PARA LEER LAS NOTAS DE FIREBASE Y PINTARLAS EN EL SIDEBAR
+async function loadDailyNotes(fecha) {
+    const container = document.getElementById('daily-notes-container');
+    if (!container) return;
+
+    try {
+        // Buscamos en Firebase las notas de la fecha seleccionada
+        const snapshot = await db.collection("dailyNotes")
+            .where("fecha", "==", fecha)
+            .orderBy("createdAt", "asc")
+            .get();
+
+        container.innerHTML = ""; // Limpiamos lo que hubiera antes
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="font-size:0.7rem; color:#999; text-align:center;">No hay notas hoy</p>';
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const nota = doc.data();
+            const noteHtml = `
+                <div class="note-item">
+                    <div class="note-text">${nota.texto}</div>
+                    <button class="delete-note-btn" onclick="deleteNote('${doc.id}', '${fecha}')">&times;</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', noteHtml);
+        });
+    } catch (error) {
+        console.error("Error cargando notas:", error);
+    }
+}
+
+// FUNCIÓN PARA BORRAR UNA NOTA
+async function deleteNote(id, fecha) {
+    if (confirm("¿Borrar esta nota?")) {
+        try {
+            await db.collection("dailyNotes").doc(id).delete();
+            loadDailyNotes(fecha); // Recargamos la lista
+        } catch (error) {
+            alert("Error al borrar");
+        }
+    }
 }
