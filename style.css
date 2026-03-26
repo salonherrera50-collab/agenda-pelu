@@ -73,11 +73,8 @@ body {
 
 .main-content { 
     padding: 30px; 
+    overflow-x: hidden; /* Evita que toda la página baile */
     overflow-y: auto; 
-    /* Esto centrará la tarjeta blanca si sobra espacio en el monitor */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
 .agenda-controls { 
@@ -110,19 +107,10 @@ body {
 
 .btn-nav-large:hover { transform: scale(1.05); }
 
-.agenda-card { 
-    background: var(--white); 
-    border-radius: 30px; 
-    box-shadow: 0 20px 40px rgba(0,0,0,0.03); 
-    
-    /* CAMBIO CLAVE: La tarjeta solo mide lo que mide la agenda */
-    width: max-content; 
-    /* Si la pantalla es muy pequeña, permite scroll */
-    max-width: 100%; 
-    
-    overflow-x: auto; 
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
+.agenda-card {
+    /* ... tus otras propiedades ... */
+    position: relative;
+    z-index: 1; /* Esto crea un nuevo contexto para que no pelee con el sidebar */
 }
 
 .grid-header, .agenda-row { 
@@ -483,8 +471,9 @@ body {
 .sticky-col {
     position: sticky;
     left: 0;
-    z-index: 10;
-    /* NO ponemos background aquí para que mande el color del JavaScript */
+    /* Subimos el z-index para que flote sobre las citas */
+    z-index: 100; 
+    background: var(--white); /* Añadimos fondo sólido para que no sea transparente */
     box-shadow: 4px 0 10px rgba(0,0,0,0.08); 
     border-right: 2px solid #ced4da;
 }
