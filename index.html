@@ -26,14 +26,14 @@
         </div>
     </div>
 
-    <header class="main-header header-derecha">
-    <div class="logo"><i class="fas fa-cut"></i> <span>PELUQUERÍA <strong>PRO</strong></span></div>
-    <nav class="nav-menu-derecha">
-        <button class="nav-btn active" id="btn-nav-agenda" onclick="showTab('agenda')">AGENDA</button>
-        <button class="nav-btn" id="btn-nav-clientes" onclick="showTab('clientes')">CLIENTES</button>
-        <button class="nav-btn" id="btn-nav-gestion" onclick="showTab('gestion')"><i class="fas fa-cog"></i> GESTIÓN</button>
-    </nav>
-</header>
+    <header class="main-header">
+        <div class="logo"><i class="fas fa-cut"></i> <span>PELUQUERÍA <strong>PRO</strong></span></div>
+        <nav class="nav-menu">
+            <button class="nav-btn active" id="btn-nav-agenda" onclick="showTab('agenda')">AGENDA</button>
+            <button class="nav-btn" id="btn-nav-clientes" onclick="showTab('clientes')">CLIENTES</button>
+            <button class="nav-btn" id="btn-nav-gestion" onclick="showTab('gestion')"><i class="fas fa-cog"></i> GESTIÓN</button>
+        </nav>
+    </header>
 
     <div class="app-container">
         <aside class="sidebar">
@@ -48,32 +48,21 @@
 </div>
 
             <div class="stats-sidebar" style="margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 12px;">
-    <div style="margin-bottom: 10px;">
-        <small style="color: #666;">CITAS HOY</small>
-        <div id="total-citas-count" style="font-size: 1.5rem; font-weight: 800; color: #2d3436;">0</div>
-    </div>
-    <div>
-        <small style="color: #666;">CONFIRMADAS</small>
-        <div id="confirmadas-count" style="font-size: 1.5rem; font-weight: 800; color: #4cd137;">0</div>
-    </div>
-</div>
-
-<div style="margin-top: 15px;">
-    <button onclick="abrirBuscadorCitas()" style="width:100%; padding:12px; background:#2d3436; color:white; border:none; border-radius:12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:8px; transition: 0.3s;">
-        <i class="fas fa-search"></i> BUSCAR CITAS
+                <div style="margin-bottom: 10px;">
+                    <small style="color: #666;">CITAS HOY</small>
+                    <div id="total-citas-count" style="font-size: 1.5rem; font-weight: 800; color: #2d3436;">0</div>
+                </div>
+                <div>
+                    <small style="color: #666;">CONFIRMADAS</small>
+                    <div id="confirmadas-count" style="font-size: 1.5rem; font-weight: 800; color: #4cd137;">0</div>
+                </div>
+            </div>
+        <!-- BOTÓN PARA ABRIR BUSCADOR -->
+<div style="margin-top: 20px; padding: 0 5px;">
+    <button onclick="openSearchModal()" style="width:100%; padding:12px; background:white; color:#6c5ce7; border:2px solid #6c5ce7; border-radius:12px; cursor:pointer; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:8px; transition: 0.3s;">
+        <i class="fas fa-search"></i> BUSCAR CITAS CLIENTE
     </button>
 </div>
-
-<div id="search-results-container" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:90%; max-width:400px; background:white; z-index:10000; padding:20px; border-radius:20px; box-shadow:0 15px-50px rgba(0,0,0,0.4); border-top: 6px solid #6c5ce7;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h3 style="margin:0; color:#6c5ce7; font-size:1.1rem;">Buscador de Clientas</h3>
-        <button onclick="cerrarBuscador()" style="background:#eee; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer;">&times;</button>
-    </div>
-    <input type="text" id="input-busqueda-citas" placeholder="Nombre o teléfono..." oninput="ejecutarBusquedaCitas(this.value)" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; font-size:16px;">
-    <div id="citas-encontradas-list" style="max-height:300px; overflow-y:auto;">
-        </div>
-</div>
-<div class="notes-sidebar-section" style="margin-top: 20px;">
 
             <div class="notes-sidebar-section" style="margin-top: 20px;">
                 <label style="font-weight: 800; font-size: 0.7rem; color: #999;">NOTAS DEL DÍA</label>
@@ -90,7 +79,7 @@
                     <button class="btn-nav-large" onclick="changeDate(1)"><i class="fas fa-chevron-right"></i></button>
                 </div>
                 <div class="agenda-card">
-    <div class="agenda-grid scroll-container">
+                    <div class="agenda-grid">
                         <div class="grid-header">
                             <div class="h-cell">HORA</div>
                             <div class="h-cell">E1</div><div class="h-cell">E2</div><div class="h-cell">E3</div>
@@ -118,14 +107,6 @@
                         <tbody id="clientes-list-body"></tbody>
                     </table>
                 </div>
-                <div id="search-results-container" style="display:none; margin-top:20px; background:white; padding:20px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); border-left: 5px solid #6c5ce7;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h3 style="margin:0; color:#6c5ce7; font-size:1.1rem;"><i class="fas fa-calendar-alt"></i> CITAS PROGRAMADAS</h3>
-        <button type="button" onclick="document.getElementById('search-results-container').style.display='none'" style="background:#eee; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer;">&times;</button>
-    </div>
-    <div id="citas-encontradas-list" style="max-height:300px; overflow-y:auto;">
-        </div>
-</div>
             </section>
 
             <section id="gestion" class="tab-content" style="display:none;">
@@ -206,13 +187,12 @@
         </main>
     </div>
 
-    <!-- MODAL DE CITAS CORREGIDO -->
     <div id="appointment-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-large" onclick="closeModal()">&times;</span>
-            <h3 id="modal-time-display" style="margin-bottom: 20px; color: var(--text);">Cita</h3>
-            
-            <form id="appointment-form" autocomplete="off">
+    <div class="modal-content">
+        <span class="close-large" onclick="closeModal()">&times;</span>
+        <h3 id="modal-time-display" style="margin-bottom: 20px; color: var(--text);">Cita</h3>
+        
+        <form id="appointment-form">
     <div class="field">
         <label>Cliente</label>
         <input type="text" id="app-name" required list="list-nombres" onchange="autoFillPhone(this.value)" autocomplete="off">
@@ -232,41 +212,96 @@
 
     <div class="field">
         <label>Notas Cita</label>
-        <textarea id="app-notes" autocomplete="off" style="height: 80px;"></textarea>
+        <textarea id="app-notes" autocomplete="off" style="height: 60px;"></textarea>
     </div>
 
-    <!-- GRUPO 1: BOTONES PARA CITA NUEVA (Apilados) -->
-    <div id="new-app-actions">
-        <button type="submit" id="btn-guardar-cambios-modal" class="btn-main" style="background:#4361ee; width:100%; padding:14px; margin-top:15px; border-radius:12px; border:none; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
-            <i class="fas fa-save"></i> GUARDAR CITA
+    <!-- BLOQUE 1: BOTONES PARA CITA NUEVA (Captura 12:00 - E3) -->
+    <div id="container-nueva">
+        <button type="button" onclick="quickBlock()" style="background:#57606f; color:white; margin-top:15px; width:100%; padding:14px; border:none; border-radius:12px; cursor:pointer; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; font-size: 14px; text-transform: uppercase;">
+            <i class="fas fa-ban"></i> BLOQUEAR ESTE TURNO
         </button>
 
-        <button type="button" onclick="quickBlock()" class="btn-main" style="background:#f0932b; width:100%; padding:14px; margin-top:10px; border-radius:12px; border:none; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px;">
-            <i class="fas fa-ban"></i> BLOQUEAR TURNO
+        <button type="submit" style="background:#4361ee; margin-top:10px; width:100%; padding:14px; border:none; border-radius:12px; color:white; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-size: 14px; text-transform: uppercase;">
+            <i class="fas fa-save"></i> GUARDAR CAMBIOS
         </button>
     </div>
 
-    <!-- GRUPO 2: CITA YA CREADA (Fila única de 4 botones para Tablet horizontal) -->
-    <!-- GRUPO 2: CITA YA CREADA (Fila única de 3 botones para Tablet horizontal) -->
-<div id="tablet-actions" style="display: none; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px;">
-    
-    <!-- 1. Actualizar (Azul) -->
-    <button type="submit" id="btn-actualizar-modal" class="btn-main" style="background:#4361ee; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px;">
-        <i class="fas fa-sync-alt"></i> ADAPTAR
-    </button>
+    <!-- BLOQUE 2: BOTONES PARA CITA EXISTENTE (Captura SONIA - 10:00) -->
+    <div id="tablet-actions" style="display:none; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-top:20px;">
+        <!-- ADAPTAR (Azul) -->
+        <button type="submit" style="background:#4361ee; color:white; border:none; border-radius:10px; padding:12px 5px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;">
+            <i class="fas fa-sync-alt" style="font-size: 14px;"></i>
+            <span style="font-size: 9px; text-transform: uppercase;">ADAPTAR</span>
+        </button>
+        
+        <!-- OK (Verde) -->
+        <button type="button" id="btn-confirmar-modal" onclick="confirmarCita()" style="background:#2ecc71; color:white; border:none; border-radius:10px; padding:12px 5px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;">
+            <i class="fas fa-check" style="font-size: 14px;"></i>
+            <span style="font-size: 9px; text-transform: uppercase;">OK</span>
+        </button>
 
-    <!-- 2. Confirmar (Verde) -->
-    <button type="button" id="btn-confirmar-modal" class="btn-main" style="background:#20bf6b; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px;">
-        <i class="fas fa-check"></i> OK
-    </button>
-
-    <!-- 3. Borrar (Rojo) -->
-    <button type="button" id="btn-borrar-modal" class="btn-main" style="background:#eb4d4b; padding:12px 2px; font-size:0.7rem; border:none; color:white; border-radius:8px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px;">
-        <i class="fas fa-trash"></i> BORRAR
-    </button>
-
-</div>
+        <!-- BORRAR (Rojo) -->
+        <button type="button" id="btn-borrar-modal" onclick="deleteApp()" style="background:#ee5d50; color:white; border:none; border-radius:10px; padding:12px 5px; font-weight:700; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;">
+            <i class="fas fa-trash-alt" style="font-size: 14px;"></i>
+            <span style="font-size: 9px; text-transform: uppercase;">BORRAR</span>
+        </button>
+    </div>
 </form>
+    </div>
+</div>
+<!-- MODAL DE CITA RÁPIDA (PARA EL BUSCADOR) -->
+<div id="modal-cita-rapida" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+    <div style="background:white; padding:25px; border-radius:20px; width:90%; max-width:380px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        
+        <div style="text-align:center; margin-bottom:20px;">
+            <i class="fas fa-calendar-plus" style="font-size: 2rem; color: #6c5ce7; margin-bottom: 10px;"></i>
+            <h3 style="margin:0; color:#2d3436; font-size: 1.4rem;">Asignar Turno</h3>
+            <p style="color:#636e72; font-size: 0.9rem; margin-top: 5px;">Configura el horario para:</p>
+        </div>
+        
+        <!-- Nombre del cliente que viene del buscador -->
+        <p id="nombre-cliente-rapido" style="text-align:center; font-weight:800; text-transform:uppercase; background:#f1f2f6; padding:12px; border-radius:12px; color:#6c5ce7; margin-bottom:20px; border: 1px solid #e2e8f0; font-size: 1.1rem;"></p>
+        
+        <div style="margin-bottom:15px;">
+            <label style="font-size:11px; font-weight:bold; color:#636e72; text-transform:uppercase; letter-spacing: 1px;">Fecha:</label>
+            <input type="date" id="fecha-rapida" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box; font-size:16px; outline: none; transition: border 0.3s;">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <div style="flex:1;">
+                <label style="font-size:11px; font-weight:bold; color:#636e72; text-transform:uppercase; letter-spacing: 1px;">Hora:</label>
+                <input type="time" id="hora-rapida" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ddd; border-radius:10px; box-sizing:border-box; font-size:16px; outline: none;">
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:11px; font-weight:bold; color:#636e72; text-transform:uppercase; letter-spacing: 1px;">Empleado:</label>
+                <select id="turno-rapido" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ddd; border-radius:10px; height:47px; box-sizing:border-box; font-size:16px; background: white; outline: none;">
+                    <option value="E1">E1</option>
+                    <option value="E2">E2</option>
+                    <option value="E3">E3</option>
+                    <option value="E4">E4</option>
+                    <option value="E5">E5</option>
+                    <option value="E6">E6</option>
+                </select>
+            </div>
+        </div>
+
+        <button onclick="guardarCitaRapida()" style="width:100%; background:#6c5ce7; color:white; border:none; padding:16px; border-radius:14px; font-weight:bold; cursor:pointer; font-size:14px; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; transition: 0.3s; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);">
+            <i class="fas fa-check-circle"></i> Confirmar y Guardar
+        </button>
+        
+        <button onclick="document.getElementById('modal-cita-rapida').style.display='none'" style="width:100%; background:none; border:none; color:#b2bec3; margin-top:15px; cursor:pointer; font-size:13px; font-weight: 500;">
+            Cerrar sin guardar
+        </button>
+    </div>
+</div>
+
+<button type="button" onclick="quickBlock()" ...>BLOQUEAR TURNO</button>
+<button type="submit" class="btn-main">GUARDAR CITA</button>
+
+                <button type="submit" class="btn-main">GUARDAR CITA</button>
+            </form>
+        </div>
+    </div>
 
    <!-- 1. MODAL FICHA CLIENTE (CON AUTOCOMPLETE DESACTIVADO) -->
     <div id="cliente-modal" class="modal">
@@ -292,21 +327,37 @@
     
     <!-- 3. MODAL NOTAS (CON AUTOCOMPLETE DESACTIVADO) -->
     <div id="note-modal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeNoteModal()">&times;</span>
-        <h3>Nueva Nota del Día</h3>
-        <div class="field">
-            <!-- Quitamos el form, dejamos solo el textarea -->
-            <textarea id="note-text-input" placeholder="Escribe aquí..."></textarea>
+        <div class="modal-content">
+            <span class="close" onclick="closeNoteModal()">&times;</span>
+            <h3>Nueva Nota del Día</h3>
+            <form id="note-form" autocomplete="off">
+                <div class="field"><textarea id="note-text-input"></textarea></div>
+                <button onclick="saveNote()" class="btn-main">AÑADIR</button>
+            </form>
         </div>
-        <!-- Botón con ID limpio y sin onclick (lo daremos por JS) -->
-        <button type="button" id="btn-guardar-nota-fijo" class="btn-main">AÑADIR NOTA</button>
     </div>
-</div>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+<!-- MODAL DE BÚSQUEDA GLOBAL -->
+<div id="search-modal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999;">
+    <div class="modal-content" style="background:white; margin: 10% auto; padding:25px; max-width: 500px; border-radius: 20px; position:relative;">
+        <span class="close-large" onclick="closeSearchModal()" style="position:absolute; right:20px; top:15px; font-size:28px; cursor:pointer;">&times;</span>
+        
+        <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color:#2d3436;">
+            <i class="fas fa-search" style="color: #6c5ce7;"></i> Buscador de Citas
+        </h3>
+        
+        <div class="field" style="margin-bottom:15px;">
+            <label style="font-weight: bold; color: #666; display:block; margin-bottom:8px;">Nombre o Teléfono del Cliente</label>
+            <input type="text" id="global-search-input" placeholder="Escribe nombre o móvil..." oninput="ejecutarBusquedaGlobal()" autocomplete="off" style="width:100%; padding:15px; border-radius:12px; border:1px solid #ddd; font-size:1.1rem; box-sizing: border-box;">
+        </div>
 
+        <div id="global-search-results" style="margin-top:20px; max-height:400px; overflow-y:auto; border-radius:12px;">
+            <!-- Resultados dinámicos -->
+        </div>
+    </div>
+</div>
     <script>
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -329,6 +380,7 @@ const firebaseConfig = {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
   }
+  
 </script>
 </body>
 </html>

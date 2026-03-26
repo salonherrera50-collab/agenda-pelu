@@ -18,42 +18,32 @@ body {
     overflow: hidden; 
 }
 
-/* Forzar que el contenedor sea flexible y separe los elementos */
-.header-derecha {
-    display: flex !important;
-    justify-content: space-between !important; 
-    align-items: center !important;
-    width: 100% !important;
-    padding: 0 30px !important;
-    box-sizing: border-box !important;
+.main-header { 
+    height: 80px; 
+    background: var(--white); 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 0 40px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02); 
+    position: relative;
+    z-index: 10;
 }
 
-/* Forzar que el menú use todo el espacio a su izquierda para empujarse a la derecha */
-.nav-menu-derecha {
-    display: flex !important;
-    margin-left: auto !important; 
-    gap: 15px !important;
-}
-
-/* Asegurarnos de que el logo se quede a la izquierda */
-.header-derecha .logo {
-    margin-right: auto !important;
-}
-
-.nav-btn {
-    padding: 8px 15px;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
+.nav-btn { 
+    background: none; 
+    border: none; 
+    font-weight: 700; 
+    color: var(--grey); 
+    padding: 25px; 
+    cursor: pointer; 
+    border-bottom: 4px solid transparent; 
     transition: 0.3s;
-    border: none;
-    background: transparent;
-    color: #636e72;
 }
 
-.nav-btn.active {
-    background: #6c5ce7;
-    color: white;
+.nav-btn.active { 
+    color: var(--primary); 
+    border-bottom-color: var(--primary); 
 }
 
 .app-container { 
@@ -120,17 +110,14 @@ body {
     background: var(--white); 
     border-radius: 30px; 
     box-shadow: 0 20px 40px rgba(0,0,0,0.03); 
-    overflow-x: auto; /* Permite scroll lateral */
-    display: block;
-    -webkit-overflow-scrolling: touch; 
+    overflow: hidden; 
 }
 
-.grid-header, .agenda-row { 
+.grid-header { 
     display: grid; 
-    /* La hora mide 80px y los 6 puestos se reparten el resto (1fr cada uno) */
-    grid-template-columns: 80px repeat(6, 1fr); 
-    width: 100%; 
-    border-bottom: 2px solid #ced4da; 
+    grid-template-columns: 90px repeat(6, 1fr); 
+    background: #fbfcfe; 
+    border-bottom: 2px solid #ced4da; /* Línea horizontal de cabecera más gruesa */
 }
 
 .h-cell { 
@@ -162,13 +149,10 @@ body {
 .sem-red { background: #ee5d50 !important; color: white !important; }
 
 .slot-cell { 
-    padding: 4px; /* Reducimos padding para ganar espacio interior */
+    padding: 8px; 
     position: relative; 
-    border-right: 2px solid #ced4da;
-    cursor: pointer;
-    overflow: hidden; 
-    min-width: 0; /* Permite que la celda se encoja si es necesario */
-    box-sizing: border-box;
+    border-right: 2px solid #ced4da; /* Línea vertical entre empleados más gruesa */
+    cursor: pointer; 
 }
 .slot-cell:last-child {
     border-right: none;
@@ -212,40 +196,27 @@ body {
     z-index: 1000; 
 }
 
-/* ==========================================================================
-   CONFIGURACIÓN DEL MODAL (CON SCROLL PARA TABLET)
-   ========================================================================== */
 .modal-content { 
     background: white; 
-    width: 90%;          
-    max-width: 420px; 
-    margin: 15px auto; 
-    padding: 25px;       
+    width: 420px; 
+    margin: 40px auto; 
+    padding: 40px; 
     border-radius: 30px; 
     position: relative; 
-    
-    /* REGLAS OBLIGATORIAS PARA LA TABLET */
-    max-height: 85vh;    
-    overflow-y: auto;    
-    -webkit-overflow-scrolling: touch; 
 }
 
-/* ==========================================================================
-   FORMULARIOS Y CAMPOS
-   ========================================================================== */
-.field { margin-bottom: 12px; } /* Un poco más compacto */
-.field label { display: block; font-weight: 700; font-size: 0.8rem; margin-bottom: 5px; color: #636e72; }
+.field { margin-bottom: 15px; }
+.field label { display: block; font-weight: 700; font-size: 0.8rem; margin-bottom: 5px; color: var(--grey); }
 .field input, .field textarea { 
     width: 100%; 
     padding: 12px; 
     border: 1px solid #e0e5f2; 
     border-radius: 12px; 
     box-sizing: border-box; 
-    font-size: 16px; /* Evita zoom automático en iPhone */
 }
 
 .btn-main { 
-    background: #6c5ce7; 
+    background: var(--primary); 
     color: white; 
     border: none; 
     padding: 16px; 
@@ -253,168 +224,85 @@ body {
     font-weight: 700; 
     width: 100%; 
     cursor: pointer; 
-    transition: 0.2s;
 }
 
+.table-card { background: white; border-radius: 25px; overflow: hidden; }
+.clientes-table { width: 100%; border-collapse: collapse; }
+.clientes-table th, .clientes-table td { padding: 20px; text-align: left; border-bottom: 1px solid #f1f1f1; }
+
+.btn-circle {
+    width: 42px; height: 42px; border-radius: 12px; border: none;
+    color: white; cursor: pointer; margin-right: 5px; font-size: 1rem;
+    display: inline-flex; align-items: center; justify-content: center; transition: 0.2s;
+    text-decoration: none;
+}
+.btn-circle:hover { transform: translateY(-3px); box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
+
+.action-btns { position: absolute; top: 8px; right: 8px; display: none; gap: 4px; }
+.slot-cell:hover .action-btns { display: flex; }
+.btn-s { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
 /* ==========================================================================
-   BOTONES DE ACCIÓN (CONFIRMAR / BORRAR / TABLET)
+   NUEVO AJUSTE: NOTAS DEL DÍA (CORRECCIÓN DE DESBORDE Y ELIMINACIÓN)
    ========================================================================== */
-#tablet-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr; 
-    gap: 12px;
-    margin-top: 15px;
-    margin-bottom: 10px;
-}
 
-/* Unificamos btn-action-tablet y los botones de tablet-actions */
-.btn-action-tablet, #tablet-actions button {
-    height: 55px; /* Altura optimizada para tablet sin romper el modal */
-    border: none;
-    border-radius: 15px;
-    color: white;
-    font-weight: 800;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    transition: transform 0.1s, background 0.2s;
-}
-
-.btn-action-tablet:active { transform: scale(0.95); }
-
-/* ==========================================================================
-   NOTAS DEL DÍA (SIDEBAR)
-   ========================================================================== */
+/* 1. Contenedor que limita el ancho para que no se salga del sidebar */
 #daily-notes-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
     margin-bottom: 20px;
+    max-width: 100%; 
+    box-sizing: border-box;
 }
 
+/* 2. La nota en sí con control de texto largo */
 .note-item {
     background: #fff9c4; 
     padding: 12px;
     border-radius: 12px;
     font-size: 0.85rem;
+    color: var(--text);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    
+    /* Esto es lo que evita que el texto se salga como en tu captura */
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word; 
 }
 
-.note-text { flex: 1; line-height: 1.4; white-space: normal; }
+/* 3. El texto de la nota */
+.note-text {
+    flex: 1;
+    line-height: 1.4;
+    white-space: normal; /* Asegura que el texto fluya hacia abajo */
+}
 
+/* 4. Botón X para eliminar la nota */
 .delete-note-btn {
-    background: #ee5d50;
+    background: #ee5d50; /* Color rojo para que se identifique como borrar */
     color: white;
     border: none;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     cursor: pointer;
+    font-size: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Evita que la X se aplaste con textos largos */
+    transition: 0.2s;
 }
 
-/* ==========================================================================
-   VISUALIZACIÓN DE LA CITA EN LA AGENDA
-   ========================================================================== */
-.client-name-display {
-    cursor: pointer;
-    color: rgba(0, 0, 0, 0.85);
-    font-size: clamp(0.6rem, 1.2vw, 0.85rem); 
-    font-weight: 800;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 3px 5px;
-    border-radius: 6px;
-    display: block;
-    margin: 0 auto 4px auto;
-    width: 95%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: center;
-    transition: all 0.2s ease-in-out;
-    border: 1px solid transparent;
+.delete-note-btn:hover {
+    transform: scale(1.1);
+    background: #d44c40;
 }
-
-.client-name-display:hover {
-    background: white;
-    color: #000;
-    transform: scale(1.03);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.service-text-display {
-    display: block;
-    font-size: clamp(0.7rem, 1.5vw, 1rem);
-    font-weight: 800;
-    color: #ffffff;
-    text-transform: uppercase;
-    text-align: center;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.occupied {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 5px;
-    overflow: hidden;
-    position: relative; /* Necesario para los iconos absolutos */
-}
-
-/* --- INDICADORES DE NOTA --- */
-.note-icon-mini {
-    position: absolute;
-    bottom: 6px;
-    right: 6px;
-    font-size: 0.8rem;
-    color: rgba(255, 217, 61, 0.9);
-}
-
-.note-glow-indicator {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 10px;
-    height: 10px;
-    background-color: #fff200;
-    border-radius: 50%;
-    box-shadow: 0 0 10px #fff200;
-    animation: notePulse 1.5s infinite;
-    z-index: 5;
-}
-
-@keyframes notePulse {
-    0% { transform: scale(0.9); opacity: 0.7; }
-    70% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 0 8px rgba(255, 242, 0, 0); }
-    100% { transform: scale(0.9); opacity: 0.7; }
-}
-
-/* ==========================================================================
-   ESTRUCTURA DE LA AGENDA Y RESPONSIVE
-   ========================================================================== */
-.agenda-grid {
-    display: table;
-    table-layout: fixed;
-    width: 100%;
-    min-width: 900px;
-}
+/* --- EFECTO VISUAL PARA EL BOTÓN VOLVER A HOY --- */
 
 @keyframes pulse-orange {
   0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 159, 67, 0.7); }
@@ -422,37 +310,109 @@ body {
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 159, 67, 0); }
 }
 
+/* Esta clase se activará desde el JavaScript */
 .btn-alerta-hoy {
     animation: pulse-orange 2s infinite !important;
+    border: 2px solid white !important;
+}
+#tablet-actions button {
+    height: 60px; /* Los hace más altos y fáciles de pulsar */
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.btn-action-tablet {
+    border: none;
+    border-radius: 15px;
+    color: white;
+    font-weight: 800;
+    font-size: 0.95rem;
+    padding: 18px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.1s;
 }
 
-@media (max-width: 600px) {
-    .grid-header, .agenda-row { 
-        grid-template-columns: 70px repeat(6, 120px); 
-    }
-    .slot-cell { min-width: 120px; }
+.btn-action-tablet:active {
+    transform: scale(0.95); /* Efecto de pulsación */
 }
-/* Forzar que la navegación no desaparezca */
-nav {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: white; /* O el color de tu app */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    width: 100%;
+/* --- MEJORA VISUAL DE LA CITA --- */
+
+/* El nombre del cliente en negro para diferenciarlo */
+/* El nombre del cliente: Más grande y legible */
+/* --- NUEVA ETIQUETA PARA EL NOMBRE DEL CLIENTE --- */
+
+.client-name-display {
+    cursor: pointer;
+    text-decoration: none; /* Quitamos el subrayado para que la etiqueta sea más limpia */
+    color: rgba(0, 0, 0, 0.85); /* Negro sólido y elegante */
+    font-size: 0.95rem;          /* Un tamaño equilibrado */
+    font-weight: 800;           /* Extra negrita */
+    
+    /* ESTO CREA LA CAJITA BLANCA SEMITRANSPARENTE */
+    background: rgba(255, 255, 255, 0.65); /* Blanco con 65% de opacidad */
+    padding: 6px 12px;           /* Espacio interno para que respire el texto */
+    border-radius: 8px;          /* Bordes redondeados y suaves */
+    
+    display: inline-block;       /* Solo ocupa el ancho del texto, no toda la línea */
+    margin-bottom: 8px;          /* Un poco más de aire con el servicio */
+    
+    /* Aseguramos que el texto largo no rompa la etiqueta */
+    max-width: 90%;             /* Evita que se pegue a los bordes de la celda */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;    
+    
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Una sombra muy suave para dar relieve */
+    transition: all 0.2s;
 }
 
-/* Ajuste para tablets: Evitar que el cuerpo de la web empuje la barra fuera */
-body, html {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Evita el scroll lateral que descuadra todo */
-    height: 100%;
+/* Efecto al pasar el ratón (o tocar en tablet) sobre el nombre */
+.client-name-display:hover {
+    background: rgba(255, 255, 255, 0.9); /* Se vuelve más blanco al interactuar */
 }
 
-/* Contenedor principal para que el scroll sea interno */
-.main-container {
-    height: calc(100vh - 60px); /* Altura total menos la barra de pestañas */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* Scroll suave en iPad/Tablet */
+/* El servicio sigue resaltando en blanco/claro debajo de la etiqueta */
+.service-text-display {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff; /* Blanco puro */
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0px 1px 3px rgba(0,0,0,0.3); /* Sombra para que resalte */
+}
+
+/* El icono de nota más discreto */
+.note-icon-mini {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-size: 0.8rem;
+    color: rgba(255, 217, 61, 0.9);
+}
+/* --- NUEVO: EFECTO DESTELLO PARA CITAS CON NOTA --- */
+.note-glow-indicator {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 10px;
+    height: 10px;
+    background-color: #fff200; /* Amarillo brillante */
+    border-radius: 50%;
+    box-shadow: 0 0 10px #fff200, 0 0 20px #fff200;
+    animation: notePulse 1.5s infinite;
+    z-index: 5;
+}
+
+@keyframes notePulse {
+    0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0.7); }
+    70% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 0 8px rgba(255, 242, 0, 0); }
+    100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0); }
 }

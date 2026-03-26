@@ -4,7 +4,6 @@ let currentDate = new Date();
 currentDate.setHours(0, 0, 0, 0);
 let isLogged = false;
 let currentCellId = null;
-let currentCitaId = null; // Esto permite diferenciar entre crear y editar
 let dbCitas = [];
 let dbClientes = [];
 let dbNotas = [];
@@ -99,7 +98,6 @@ function goToDate(dateValue) {
     updateDateDisplay();
     obtenerCitasFirebase();
     obtenerNotasFirebase();
-    loadDailyNotes(nuevaFecha);
 }
 
 function changeDate(d) {
@@ -305,7 +303,7 @@ if (appForm) {
 
         let promesaCita;
         if (citaExistente) {
-    if (contenedorAcciones) contenedorAcciones.style.display = 'grid'; // Asegúrate que diga 'grid'
+            promesaCita = db.collection("citas").doc(citaExistente.id).set(datosCita, { merge: true });
         } else {
             promesaCita = db.collection("citas").add(datosCita);
         }
@@ -415,44 +413,16 @@ async function deleteCli(id) {
 }
 
 // --- 7. NOTAS Y BLOQUEOS ---
-async function saveNote(event) {
-    // 1. EVITAR QUE LA APP SE RECARGUE Y TE ECHE A GOOGLE
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-    const noteInput = document.getElementById('note-text-input');
-    const texto = noteInput.value.trim();
-
-    if (!texto) {
-        alert("Escribe algo en la nota antes de guardar.");
-        return;
-    }
-
-    try {
-        // 2. GUARDAR EN FIREBASE (Asegúrate de que la colección sea 'dailyNotes')
-        // Usamos la fecha actual para que la nota se guarde en el día correcto
-        const fechaHoy = document.getElementById('date-picker-side').value; 
-
-        await db.collection("dailyNotes").add({
-            texto: texto,
-            fecha: fechaHoy,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+async function saveNote() {
+    const txt = document.getElementById('note-text-input').value;
+    if(txt) {
+        await db.collection("notas").add({
+            // CAMBIO AQUÍ: Usamos tu función local en lugar de toISOString
+            fecha: getLocalDateString(currentDate), 
+            texto: txt
         });
-
-        // 3. LIMPIAR Y CERRAR SIN RECARGAR
-        noteInput.value = "";
+        document.getElementById('note-text-input').value = "";
         closeNoteModal();
-        
-        // Si tienes una función que refresca la lista de notas, llámala aquí
-        if (typeof loadDailyNotes === "function") {
-            loadDailyNotes(fechaHoy);
-        }
-
-    } catch (error) {
-        console.error("Error al guardar la nota:", error);
-        alert("No se pudo guardar la nota. Revisa tu conexión.");
     }
 }
 
@@ -494,6 +464,7 @@ function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
 function openAppModal(id, time, e) {
+    // 1. Evitamos apertura accidental si hay iconos
     if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
     
     currentCellId = id;
@@ -503,53 +474,43 @@ function openAppModal(id, time, e) {
     document.getElementById('appointment-form').reset();
     document.getElementById('modal-time-display').innerText = `${time} - E${esp}`;
     
-    const grupoNuevaCita = document.getElementById('new-app-actions');
-    const grupoEdicionCita = document.getElementById('tablet-actions');
-    const btnConf = document.getElementById('btn-confirmar-modal');
-    const btnBorr = document.getElementById('btn-borrar-modal');
-
-    // --- EL TRUCO PARA ELIMINAR EL DOBLE AVISO ---
-    // Clonamos el botón de borrar para eliminar cualquier evento "viejo" pegado a él
-    if (btnBorr) {
-        const nuevoBtnBorr = btnBorr.cloneNode(true);
-        btnBorr.parentNode.replaceChild(nuevoBtnBorr, btnBorr);
-    }
-    // Volvemos a capturar la referencia tras clonarlo
-    const btnBorrLimpio = document.getElementById('btn-borrar-modal');
-
     const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
+    
+    // --- LÓGICA DE VISIBILIDAD DE BOTONES ---
+    const contenedorNueva = document.getElementById('container-nueva');   // Bloque Gris y Azul
+    const contenedorSonia = document.getElementById('tablet-actions');    // Bloque de 3 botones (Adaptar, OK, Borrar)
 
     if (citaExistente) {
-        currentCitaId = citaExistente.id; 
-        
-        document.getElementById('app-name').value = citaExistente.nombre || "";
-        document.getElementById('app-phone').value = citaExistente.telefono || "";
-        document.getElementById('app-service').value = citaExistente.servicio || "";
-        document.getElementById('app-notes').value = citaExistente.notas || "";
+        // CASO: CITA YA EXISTENTE (Captura SONIA)
+        document.getElementById('app-name').value = citaExistente.nombre;
+        document.getElementById('app-phone').value = citaExistente.telefono;
+        document.getElementById('app-service').value = citaExistente.servicio;
+        document.getElementById('app-notes').value = citaExistente.notas;
 
-        if (grupoNuevaCita) grupoNuevaCita.style.display = 'none';
-        if (grupoEdicionCita) grupoEdicionCita.style.display = 'grid'; 
+        // ACCIÓN: Mostramos los 3 de colores y OCULTAMOS los grandes (Bloquear/Guardar)
+        if (contenedorSonia) contenedorSonia.style.display = 'grid';
+        if (contenedorNueva) contenedorNueva.style.display = 'none';
         
+        // Configurar acciones de los botones de confirmación y borrado
+        const btnConf = document.getElementById('btn-confirmar-modal');
+        const btnBorr = document.getElementById('btn-borrar-modal');
+
         if (btnConf) {
             btnConf.onclick = (event) => {
                 confirmCita(citaExistente.id, event);
                 closeModal();
             };
         }
-        
-        // Ahora asignamos el clic al botón recién limpiado
-        if (btnBorrLimpio) {
-            btnBorrLimpio.onclick = (event) => {
-                // Solo saldrá este mensaje una vez
-                if(confirm("¿Seguro que quieres borrar esta cita?")) {
-                    deleteCita(citaExistente.id, event).then(() => closeModal());
-                }
+        if (btnBorr) {
+            btnBorr.onclick = (event) => {
+                deleteCita(citaExistente.id, event).then(() => closeModal());
             };
         }
     } else {
-        currentCitaId = null;
-        if (grupoNuevaCita) grupoNuevaCita.style.display = 'block';
-        if (grupoEdicionCita) grupoEdicionCita.style.display = 'none';
+        // CASO: CELDA VACÍA (Captura 12:00 - E3)
+        // ACCIÓN: Mostramos los botones grandes y OCULTAMOS la fila de 3
+        if (contenedorSonia) contenedorSonia.style.display = 'none';
+        if (contenedorNueva) contenedorNueva.style.display = 'block';
     }
 
     document.getElementById('appointment-modal').style.display = 'block';
@@ -574,81 +535,78 @@ function filterClientes() {
     const q = document.getElementById('search-client').value.toUpperCase();
     const filtrados = dbClientes.filter(c => c.nombre.includes(q) || c.telefono.includes(q));
     renderClientes(filtrados);
-    if (q.length >= 3) {
-        buscarCitasProximas(q);
-    } else {
-        const resCont = document.getElementById('search-results-container');
-        if(resCont) resCont.style.display = 'none';
-    }
 }
 
 // --- 10. ESCUCHAS FIREBASE (TIEMPO REAL) ---
-
 function obtenerCitasFirebase() {
     if (unsubscribeCitas) unsubscribeCitas();
+
     const dateStr = getLocalDateString(currentDate);
     unsubscribeCitas = db.collection("citas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbCitas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // 1. Dibuja la agenda del día (lo que ya hacía)
         buildAgenda();
-        if (typeof actualizarEstadisticasAnuales === "function") actualizarEstadisticasAnuales();
+
+        // 2. NUEVO: Lanza la actualización de las estadísticas anuales 
+        // para que los contadores de Gestión cambien al instante
+        if (typeof actualizarEstadisticasAnuales === "function") {
+            actualizarEstadisticasAnuales();
+        }
     });
 }
-
 function obtenerClientesFirebase() {
     db.collection("clientes").onSnapshot((snapshot) => {
+        // 1. Extraemos los datos de Firebase
         let lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        lista.sort((a, b) => (a.nombre || "").toUpperCase().localeCompare((b.nombre || "").toUpperCase()));
+
+        // 2. ORDENAR: Alfabéticamente por nombre
+        lista.sort((a, b) => {
+            const nombreA = (a.nombre || "").toUpperCase();
+            const nombreB = (b.nombre || "").toUpperCase();
+            return nombreA.localeCompare(nombreB);
+        });
+
+        // 3. Guardamos en la variable global
         dbClientes = lista;
+
+        // 4. Dibujamos la tabla de la pestaña Clientes
         renderClientes();
-        const dN = document.getElementById('list-nombres');
-        const dT = document.getElementById('list-telefonos');
-        if (dN) dN.innerHTML = dbClientes.map(c => `<option value="${c.nombre}">`).join('');
-        if (dT) dT.innerHTML = dbClientes.filter(c => c.telefono).map(c => `<option value="${c.telefono}">`).join('');
+
+        // 5. ACTUALIZAMOS LOS DOS DESPLEGABLES (Datalists)
+        const datalistNombres = document.getElementById('list-nombres');
+        const datalistTelefonos = document.getElementById('list-telefonos');
+
+        // Llenar sugerencias de Nombres
+        if (datalistNombres) {
+            datalistNombres.innerHTML = dbClientes
+                .map(c => `<option value="${c.nombre}">`)
+                .join('');
+        }
+        
+        // Llenar sugerencias de Teléfonos (NUEVO)
+        if (datalistTelefonos) {
+            datalistTelefonos.innerHTML = dbClientes
+                .filter(c => c.telefono) // Solo si el cliente tiene teléfono
+                .map(c => `<option value="${c.telefono}">`)
+                .join('');
+        }
     });
 }
 
-/** 
- * REPARACIÓN: Función unificada de Notas.
- * Usa la colección 'dailyNotes' que es la que configuramos para evitar recargas.
- */
 function obtenerNotasFirebase() {
     if (unsubscribeNotas) unsubscribeNotas();
-    
-    // IMPORTANTE: Asegúrate de que esta fecha coincida con la que ves en el calendario lateral
+
     const dateStr = getLocalDateString(currentDate);
-    
-    unsubscribeNotas = db.collection("dailyNotes").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
+    unsubscribeNotas = db.collection("notas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
         dbNotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const container = document.getElementById('daily-notes-container');
-        
-        if (!container) return;
-
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="font-size:0.7rem; color:#999; text-align:center; padding:10px;">No hay notas hoy</p>';
-            return;
-        }
-
-        container.innerHTML = dbNotas.map(n => `
-            <div class="note-item" style="background:#fff9c4; padding:8px; margin-top:5px; border-radius:10px; font-size:0.75rem; display:flex; justify-content:space-between; align-items:center; border:1px solid #f1e689; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <span style="flex:1;">${n.texto}</span>
-                <i class="fas fa-trash" onclick="eliminarNota('${n.id}')" style="color:#ee5d50; cursor:pointer; padding:5px;"></i>
+        if(container) container.innerHTML = dbNotas.map(n => `
+            <div class="note-item" style="background:#fff9c4; padding:8px; margin-top:5px; border-radius:5px; font-size:0.75rem; display:flex; justify-content:space-between; border:1px solid #f1e689;">
+                <span>${n.texto}</span>
+                <i class="fas fa-trash" onclick="eliminarNota('${n.id}')" style="color:red; cursor:pointer;"></i>
             </div>`).join('');
     });
-}
-
-/**
- * REPARACIÓN: Función para eliminar notas corregida para apuntar a 'dailyNotes'
- */
-async function eliminarNota(id) {
-    if (confirm("¿Borrar esta nota?")) {
-        try {
-            await db.collection("dailyNotes").doc(id).delete();
-            // No hace falta recargar, onSnapshot lo detecta solo
-        } catch (e) {
-            console.error("Error al borrar nota:", e);
-            alert("Error al borrar");
-        }
-    }
 }
 
 function obtenerBloqueosFirebase() {
@@ -698,41 +656,11 @@ async function purgeAppointments() {
 }
 
 function getLocalDateString(date) {
-    if (!(date instanceof Date)) date = new Date();
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 }
-
-// --- 11. GESTIÓN MANUAL DEL BOTÓN DE NOTAS (ANTI-RECARGA) ---
-document.addEventListener('DOMContentLoaded', () => {
-    const btnNota = document.getElementById('btn-guardar-nota-fijo');
-    if (btnNota) {
-        btnNota.onclick = async (e) => {
-            e.preventDefault(); 
-            const input = document.getElementById('note-text-input');
-            const texto = input.value.trim();
-            const fechaActual = document.getElementById('date-picker-side').value;
-
-            if (!texto) return;
-
-            try {
-                await db.collection("dailyNotes").add({
-                    texto: texto,
-                    fecha: fechaActual,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                input.value = "";
-                closeNoteModal();
-                // Al usar onSnapshot, la nota aparecerá sola inmediatamente
-            } catch (error) {
-                console.error("Error al guardar nota:", error);
-                alert("Error al conectar con la base de datos");
-            }
-        };
-    }
-});
 // Función para crear administradores (faltaba en tu script)
 async function saveUser() {
     const user = document.getElementById('new-user').value.trim();
@@ -850,371 +778,211 @@ function resetearAHoy() {
         }
     }, 500); // Pequeño retraso para dejar que la agenda se dibuje
 }
-async function buscarCitasProximas(criterio) {
-    if (!criterio || criterio.length < 3) {
-        document.getElementById('search-results-container').style.display = 'none';
+/* ============================================================
+   FUNCIONES DEL BUSCADOR GLOBAL DE CITAS
+   ============================================================ */
+
+// 1. Abre el modal y pone el foco en el input
+// 1. Abre el modal de búsqueda
+function openSearchModal() {
+    const modal = document.getElementById('search-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.getElementById('global-search-input').value = '';
+        document.getElementById('global-search-results').innerHTML = '';
+        
+        setTimeout(() => {
+            const input = document.getElementById('global-search-input');
+            if(input) input.focus();
+        }, 300);
+    }
+}
+
+// 2. Cierra el modal de búsqueda
+function closeSearchModal() {
+    const modal = document.getElementById('search-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// 3. Ejecuta la búsqueda en Firebase
+async function ejecutarBusquedaGlobal() {
+    const query = document.getElementById('global-search-input').value.toLowerCase().trim();
+    const container = document.getElementById('global-search-results');
+    
+    if (query.length < 3) {
+        container.innerHTML = '';
         return;
     }
 
-    const hoyStr = getLocalDateString(new Date());
-    const anioActual = new Date().getFullYear();
-    const finAnioStr = `${anioActual}-12-31`;
+    container.innerHTML = '<div style="text-align:center; padding:15px; color:#6c5ce7;"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
 
     try {
-        const snapshot = await db.collection("citas")
-            .where("fecha", ">=", hoyStr)
-            .where("fecha", "<=", finAnioStr)
-            .get();
-
-        const contenedor = document.getElementById('citas-encontradas-list');
-        const panelInfo = document.getElementById('search-results-container');
-        contenedor.innerHTML = "";
-        
-        let encontradas = [];
+        const snapshot = await db.collection("citas").get();
+        let resultados = [];
+        const hoyString = getLocalDateString(new Date()); 
 
         snapshot.forEach(doc => {
-            const cita = doc.data();
-            const nombreCita = (cita.nombre || "").toUpperCase();
-            const tlfCita = (cita.telefono || "");
-            const busqueda = criterio.toUpperCase();
-
-            if (nombreCita.includes(busqueda) || tlfCita.includes(busqueda)) {
-                encontradas.push(cita);
+            const data = doc.data();
+            const contenido = JSON.stringify(data).toLowerCase();
+            if (contenido.includes(query)) {
+                const f = data.fecha || data.Fecha || "";
+                const h = data.hora || data.Hora || ""; // Capturamos la hora
+                let esPasada = (f && f < hoyString);
+                resultados.push({ ...data, esPasada, f, h });
             }
         });
 
-       if (encontradas.length > 0) {
-            encontradas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+        let html = `
+            <div onclick="prepararFormularioYCrear('${query.toUpperCase()}')" style="background:#6c5ce7; color:white; padding:14px; border-radius:12px; margin-bottom:15px; cursor:pointer; text-align:center; font-weight:800; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2); border: 2px solid #fff; text-transform:uppercase;">
+                <i class="fas fa-user-plus"></i> NUEVA CITA PARA: ${query}
+            </div>
+        `;
 
-            encontradas.forEach(cita => {
-                const item = document.createElement('div');
-                item.style = "padding:12px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center; gap:10px;";
-                const fechaCorta = cita.fecha.split('-').reverse().slice(0,2).join('/');
-                
-                item.innerHTML = `
-                    <div style="flex: 1;">
-                        <span style="background:#6c5ce7; color:white; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:bold; margin-right:8px;">${fechaCorta}</span>
-                        <b style="color:#2d3436;">${cita.hora}h</b>
-                        <div style="font-size:0.85rem; color:#666; margin-top:4px; font-weight: 500;">${cita.nombre}</div>
-                        <div style="font-size:0.75rem; color:#999;"><i class="fas fa-cut"></i> ${cita.servicio}</div>
-                    </div>
-                    <div style="text-align:right; display: flex; flex-direction: column; gap: 5px; min-width: 90px;">
-                        <span style="color:${cita.confirmada ? '#4cd137' : '#ff9f43'}; font-size:0.65rem; font-weight:800; text-transform: uppercase;">
-                            ${cita.confirmada ? 'Confirmada' : 'Pendiente'}
-                        </span>
-                        <button onclick="goToDate('${cita.fecha}'); cerrarBuscador();" style="background:#6c5ce7; color:white; border:none; padding:6px 4px; border-radius:8px; cursor:pointer; font-size:0.65rem; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:4px;">
-                            <i class="fas fa-calendar-check"></i> IR AL DÍA
-                        </button>
-                    </div>
-                `;
-                contenedor.appendChild(item);
-            });
-            panelInfo.style.display = 'block';
+        if (resultados.length > 0) {
+            // Ordenar: primero las futuras, luego las pasadas
+            resultados.sort((a, b) => a.esPasada - b.esPasada);
+            
+            html += resultados.map(cita => {
+                const color = cita.esPasada ? '#e74c3c' : '#6c5ce7';
+                const fechaCita = cita.f || '---';
+                const horaCita = cita.h || '';
+
+                // Ahora pasamos FECHA y HORA a la función irACitaYSalir
+                return `
+                    <div onclick="irACitaYSalir('${fechaCita}', '${horaCita}')" style="background:white; padding:12px; border-radius:10px; margin-bottom:8px; cursor:pointer; border:1px solid #eee; border-left: 5px solid ${color}; transition: transform 0.2s;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:bold; text-transform:uppercase; font-size:12px; color:#2d3436;">${cita.nombre || cita.Nombre}</div>
+                                <div style="font-size:10px; color:${color}; font-weight:bold; margin-top:2px;">
+                                    ${cita.esPasada ? '<i class="fas fa-history"></i> HISTORIAL' : '<i class="fas fa-calendar-check"></i> PRÓXIMA'}
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="background:${color}; color:white; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:bold;">${fechaCita}</div>
+                                <div style="font-size:12px; font-weight:800; margin-top:4px; color:#2d3436;">${horaCita}${horaCita ? 'h' : ''}</div>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
         } else {
-            panelInfo.style.display = 'block'; 
-            contenedor.innerHTML = `
-                <div style="text-align:center; padding:10px 5px; color:#636e72;">
-                    <div style="margin-bottom:8px;">
-                        <i class="fas fa-search" style="font-size:1.2rem; color:#dfe6e9;"></i>
-                        <b style="display:block; font-size:0.9rem; color:#2d3436; margin-top:5px;">Sin citas próximas</b>
-                    </div>
-                    
-                    <div style="background:#f1f2f6; padding:12px; border-radius:12px; border:1px solid #e1e1e1; text-align: left;">
-                        <p style="font-size:0.7rem; margin-bottom:8px; font-weight:bold; text-align:center; color:#6c5ce7; text-transform:uppercase;">Agendar: ${criterio}</p>
-                        
-                        <div style="margin-bottom:8px;">
-                            <label style="font-size:0.65rem; color:#7f8c8d; font-weight:bold; margin-left:2px;">FECHA</label>
-                            <input type="date" id="new-app-date" value="${getLocalDateString(new Date())}" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ccc; font-size:0.8rem; background:white;">
-                        </div>
-                        
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px;">
-                            <div>
-                                <label style="font-size:0.65rem; color:#7f8c8d; font-weight:bold; margin-left:2px;">HORA</label>
-                                <select id="new-app-time" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ccc; font-size:0.8rem; background:white;">
-                                    ${generarOpcionesHoras()}
-                                </select>
-                            </div>
-                            <div>
-                                <label style="font-size:0.65rem; color:#7f8c8d; font-weight:bold; margin-left:2px;">ESPACIO</label>
-                                <select id="new-app-space" style="width:100%; padding:6px; border-radius:8px; border:1px solid #ccc; font-size:0.8rem; background:white;">
-                                    <option value="1">E1</option><option value="2">E2</option>
-                                    <option value="3">E3</option><option value="4">E4</option>
-                                    <option value="5">E5</option><option value="6">E6</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button onclick="confirmarNuevaCitaDesdeBusqueda('${criterio}')" style="background:#20bf6b; color:white; border:none; width:100%; padding:10px; border-radius:10px; cursor:pointer; font-weight:800; font-size:0.75rem; display:flex; align-items:center; justify-content:center; gap:6px; transition:0.2s; box-shadow:0 3px 6px rgba(32, 191, 107, 0.2);">
-                            <i class="fas fa-plus"></i> AGENDAR AHORA
-                        </button>
-                    </div>
-                </div>
-            `;
+            html += `<p style="text-align:center; color:#636e72; font-size:13px; margin-top:10px;">No se encontraron citas previas.</p>`;
         }
+
+        container.innerHTML = html;
     } catch (error) {
-        console.error("Error en buscador de citas:", error);
+        console.error("Error en búsqueda:", error);
+        container.innerHTML = '<p style="text-align:center; color:red;">Error al cargar resultados.</p>';
     }
 }
 
-// --- FUNCIONES DE CONTROL DEL MODAL ---
+// 4. FUNCIÓN CLAVE: Abre el formulario pero permite elegir los datos
+// Esta función abre el mini-formulario que acabas de pegar
+function prepararFormularioYCrear(nombreParaCita) {
+    // 1. Cerramos el buscador (ID: search-modal)
+    const buscador = document.getElementById('search-modal');
+    if (buscador) buscador.style.display = 'none';
 
-function abrirBuscadorCitas() {
-    const modal = document.getElementById('search-results-container');
-    const input = document.getElementById('input-busqueda-citas');
-    const lista = document.getElementById('citas-encontradas-list');
-    
-    if(modal) modal.style.display = 'block';
-    if(input) input.value = ""; 
-    if(lista) lista.innerHTML = "<p style='text-align:center; color:#999; font-size:0.8rem; padding:20px;'>Escribe nombre o teléfono...</p>";
-    
-    setTimeout(() => { if(input) input.focus(); }, 100);
-}
-
-function cerrarBuscador() {
-    const modal = document.getElementById('search-results-container');
-    if(modal) modal.style.display = 'none';
-}
-
-function ejecutarBusquedaCitas(valor) {
-    const criterio = valor.trim().toUpperCase();
-    if (criterio.length >= 3) {
-        buscarCitasProximas(criterio);
-    } else {
-        const lista = document.getElementById('citas-encontradas-list');
-        if(lista) lista.innerHTML = "";
+    // 2. Mostramos el mini-formulario rápido (el que pegaste en el index)
+    const modalRapido = document.getElementById('modal-cita-rapida');
+    if (modalRapido) {
+        modalRapido.style.display = 'flex'; 
     }
-}
-// 1. Función para abrir el modal flotante
-function abrirBuscadorCitas() {
-    const modal = document.getElementById('search-results-container');
-    const input = document.getElementById('input-busqueda-citas');
-    const lista = document.getElementById('citas-encontradas-list');
+
+    // 3. Escribimos el nombre del cliente
+    document.getElementById('nombre-cliente-rapido').innerText = nombreParaCita;
     
-    if(modal) modal.style.display = 'block';
-    if(input) input.value = ""; 
-    if(lista) lista.innerHTML = "<p style='text-align:center; color:#999; font-size:0.8rem; padding:20px;'>Escribe nombre o teléfono para buscar...</p>";
-    
-    // Ponemos el foco en el input para escribir directo
-    setTimeout(() => { if(input) input.focus(); }, 100);
+    // 4. Ponemos fecha de hoy y una hora sugerida
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha-rapida').value = hoy;
+    document.getElementById('hora-rapida').value = "10:00";
 }
 
-// 2. Función para cerrar el modal
-function cerrarBuscador() {
-    const modal = document.getElementById('search-results-container');
-    if(modal) modal.style.display = 'none';
-}
+// Esta función es la que guarda los datos en Firebase al dar al botón lila
+async function guardarCitaRapida() {
+    const nombre = document.getElementById('nombre-cliente-rapido').innerText;
+    const fecha = document.getElementById('fecha-rapida').value;
+    const hora = document.getElementById('hora-rapida').value;
+    const turnoSeleccionado = document.getElementById('turno-rapido').value; // Ejemplo: "E3"
 
-// 3. Función puente que conecta el input con tu buscador de Firebase
-function ejecutarBusquedaCitas(valor) {
-    const criterio = valor.trim().toUpperCase();
-    // Solo buscamos si hay 3 o más letras para no saturar Firebase
-    if (criterio.length >= 3) {
-        buscarCitasProximas(criterio);
-    } else {
-        const lista = document.getElementById('citas-encontradas-list');
-        if(lista) lista.innerHTML = "";
+    if (!fecha || !hora) {
+        alert("¡Ojo! Te falta seleccionar la fecha o la hora.");
+        return;
     }
-}
-function prepararNuevaCitaDesdeBusqueda(nombreBusqueda) {
-    // 1. Cerramos el buscador para ver la agenda
-    cerrarBuscador();
-    
-    // 2. Buscamos si el cliente ya existe en tu base de datos para sacar su teléfono
-    const cliente = dbClientes.find(c => c.nombre === nombreBusqueda);
-    const telefono = cliente ? cliente.telefono : "";
 
-    // 3. Abrimos el modal de cita en el primer hueco libre (Espacio 1) de la hora actual
-    // o simplemente en la hora que prefieras por defecto (ej: 09:00)
-    const horaDefecto = "09:00";
-    const celdaId = `cell-${horaDefecto}-1`;
-    
-    // Usamos tu función existente para abrir el modal
-    openAppModal(celdaId, horaDefecto);
+    // EXTRAEMOS EL NÚMERO: Tu agenda necesita el número (1 al 6) no el texto "E1"
+    const numeroEspacio = turnoSeleccionado.replace('E', '');
 
-    // 4. Rellenamos los campos automáticamente
-    setTimeout(() => {
-        document.getElementById('app-name').value = nombreBusqueda;
-        document.getElementById('app-phone').value = telefono;
-        document.getElementById('app-service').focus(); // Ponemos el foco en servicio para ir rápido
-    }, 200);
-}
-// Genera las horas de 09:00 a 20:00 para el select
-// Generador de horas ultra-compacto
-function generarOpcionesHoras() {
-    let html = "";
-    for (let h = 9; h <= 20; h++) {
-        ['00', '30'].forEach(m => {
-            if (h === 20 && m === '30') return;
-            const t = `${h.toString().padStart(2, '0')}:${m}`;
-            html += `<option value="${t}">${t}</option>`;
+    try {
+        await db.collection("citas").add({
+            nombre: nombre.toUpperCase(),
+            fecha: fecha,
+            hora: hora,
+            espacio: numeroEspacio, // <--- CAMBIO CLAVE: "espacio" en lugar de "empleado"
+            telefono: "---",
+            servicio: "CITA RÁPIDA",
+            confirmada: false,
+            esBloqueo: false,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        document.getElementById('modal-cita-rapida').style.display = 'none';
+        
+        const inputBusca = document.getElementById('global-search-input');
+        if(inputBusca) inputBusca.value = '';
+
+        alert("¡Cita confirmada!");
+        
+        // REFRESCAR: Usamos buildAgenda que es la función que ya tienes
+        if (typeof buildAgenda === 'function') {
+            buildAgenda(); 
+        } else {
+            location.reload(); 
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Error al guardar.");
     }
-    return html;
 }
+// 6. FUNCIÓN PARA IR A UNA CITA EXISTENTE DESDE EL BUSCADOR
+async function irACitaYSalir(fechaCita, horaCita) {
+    // 1. Cerramos el buscador
+    closeSearchModal();
 
-// Función para procesar la nueva cita
-function confirmarNuevaCitaDesdeBusqueda(nombre) {
-    const fecha = document.getElementById('new-app-date').value;
-    const hora = document.getElementById('new-app-time').value;
-    const espacio = document.getElementById('new-app-space').value;
+    // 2. Convertimos la fecha de la cita (YYYY-MM-DD) a objeto Date
+    const partes = fechaCita.split('-');
+    // Usamos el constructor con números para evitar problemas de zona horaria
+    currentDate = new Date(partes[0], partes[1] - 1, partes[2]);
 
-    if(!fecha) return;
-
-    // 1. Cerramos buscador
-    cerrarBuscador();
-
-    // 2. Viajamos a la fecha
-    const d = fecha.split('-');
-    currentDate = new Date(d[0], d[1]-1, d[2]);
+    // 3. Actualizamos el título y el selector de fecha visualmente
     updateDateDisplay();
+
+    // 4. Cargamos los datos de ese día desde Firebase
+    // Esto disparará automáticamente buildAgenda() gracias al onSnapshot
     obtenerCitasFirebase();
+    obtenerNotasFirebase();
 
-    // 3. Abrimos el modal oficial
-    const cellId = `cell-${hora}-${espacio}`;
-    openAppModal(cellId, hora);
-
-    // 4. Autorrelleno de datos (si el cliente ya existe en dbClientes)
+    // 5. Scroll automático hasta la hora de la cita
+    // Le damos un pequeño tiempo (500ms) para que la agenda se dibuje primero
     setTimeout(() => {
-        const inputNombre = document.getElementById('app-name');
-        const inputTlf = document.getElementById('app-phone');
-        if(inputNombre) inputNombre.value = nombre;
-        
-        const clienteFound = dbClientes.find(c => c.nombre.toUpperCase() === nombre.toUpperCase());
-        if(clienteFound && inputTlf) inputTlf.value = clienteFound.telefono;
-        
-        document.getElementById('app-service').focus();
-    }, 300);
-}
-// Este bloque gestiona el guardado de notas sin recargas
-document.addEventListener('DOMContentLoaded', () => {
-    const btnNota = document.getElementById('btn-guardar-nota-fijo');
-    
-    if (btnNota) {
-        btnNota.onclick = async (e) => {
-            e.preventDefault(); // BLOQUEO ANTI-RECARGA
-            
-            const input = document.getElementById('note-text-input');
-            const texto = input.value.trim();
-            // Cogemos la fecha que esté marcada en el calendario de la izquierda
-            const fecha = document.getElementById('date-picker-side').value;
+        const filas = document.querySelectorAll('.agenda-row');
+        let filaDestino = null;
 
-            if (!texto) return;
-
-            try {
-                // GUARDAR EN FIREBASE
-                await db.collection("dailyNotes").add({
-                    texto: texto,
-                    fecha: fecha,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                console.log("Nota guardada");
-                input.value = ""; // Limpiar el texto
-                closeNoteModal(); // Cerrar ventana
-                
-                // REFRESCAR LA LISTA (Llamamos a tu función de carga)
-                if (typeof loadDailyNotes === 'function') {
-                    loadDailyNotes(fecha);
-                }
-
-            } catch (error) {
-                console.error("Error al guardar nota:", error);
-                alert("Error al conectar con la base de datos");
+        filas.forEach(fila => {
+            // Buscamos la fila que tenga el texto de la hora (ej: "10:30")
+            if (fila.innerText.includes(horaCita)) {
+                filaDestino = fila;
             }
-        };
-    }
-});
-// FUNCIÓN PARA LEER LAS NOTAS DE FIREBASE Y PINTARLAS EN EL SIDEBAR
-async function loadDailyNotes(fecha) {
-    const container = document.getElementById('daily-notes-container');
-    if (!container) return;
-
-    try {
-        // Buscamos en Firebase las notas de la fecha seleccionada
-        const snapshot = await db.collection("dailyNotes")
-            .where("fecha", "==", fecha)
-            .orderBy("createdAt", "asc")
-            .get();
-
-        container.innerHTML = ""; // Limpiamos lo que hubiera antes
-
-        if (snapshot.empty) {
-            container.innerHTML = '<p style="font-size:0.7rem; color:#999; text-align:center;">No hay notas hoy</p>';
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            const nota = doc.data();
-            const noteHtml = `
-                <div class="note-item">
-                    <div class="note-text">${nota.texto}</div>
-                    <button class="delete-note-btn" onclick="deleteNote('${doc.id}', '${fecha}')">&times;</button>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', noteHtml);
         });
-    } catch (error) {
-        console.error("Error cargando notas:", error);
-    }
-}
 
-// FUNCIÓN PARA BORRAR UNA NOTA
-async function deleteNote(id, fecha) {
-    if (confirm("¿Borrar esta nota?")) {
-        try {
-            await db.collection("dailyNotes").doc(id).delete();
-            loadDailyNotes(fecha); // Recargamos la lista
-        } catch (error) {
-            alert("Error al borrar");
-        }
-    }
-}
-async function guardarCitaFull(e) {
-    if (e) e.preventDefault(); // Evita que la página se recargue en la tablet
-
-    // 1. Recogemos los datos del formulario
-    const nombre = document.getElementById('app-name').value.toUpperCase();
-    const telefono = document.getElementById('app-phone').value;
-    const servicio = document.getElementById('app-service').value;
-    const notas = document.getElementById('app-notes').value;
-
-    // 2. Preparamos el objeto con la información
-    const datosCita = {
-        nombre: nombre,
-        telefono: telefono,
-        servicio: servicio,
-        notas: notas,
-        updatedAt: new Date() // Para saber cuándo se tocó por última vez
-    };
-
-    try {
-        if (currentCitaId) {
-            // --- CASO EDITAR (Botón ADAPTAR) ---
-            await db.collection("citas").doc(currentCitaId).update(datosCita);
-            console.log("Cita actualizada con éxito");
-        } else {
-            // --- CASO NUEVA (Botón GUARDAR CITA) ---
-            // Extraemos hora y espacio del ID de la celda (ej: cell-09:00-1)
-            const partes = currentCellId.split('-'); 
+        if (filaDestino) {
+            filaDestino.scrollIntoView({ behavior: 'smooth', block: 'center' });
             
-            await db.collection("citas").add({
-                ...datosCita,
-                fecha: getLocalDateString(currentDate),
-                hora: partes[1],
-                espacio: parseInt(partes[2]),
-                confirmada: false,
-                origen: 'gestionada'
-            });
-            console.log("Nueva cita creada con éxito");
+            // Opcional: Resaltamos la fila un momento para que sepa cuál es
+            filaDestino.style.backgroundColor = "rgba(108, 92, 231, 0.2)";
+            setTimeout(() => {
+                filaDestino.style.backgroundColor = "";
+            }, 2500);
         }
-        
-        // Cerramos el modal tras el éxito
-        if (typeof closeModal === 'function') closeModal();
-        
-    } catch (error) {
-        console.error("Error en Firebase:", error);
-        alert("Error al guardar: Revisa tu conexión a internet.");
-    }
+    }, 600);
 }
-// Vinculamos el evento de envío del formulario a nuestra nueva función
-document.getElementById('appointment-form').onsubmit = guardarCitaFull;
