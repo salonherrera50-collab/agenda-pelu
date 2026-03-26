@@ -74,6 +74,10 @@ body {
 .main-content { 
     padding: 30px; 
     overflow-y: auto; 
+    /* Esto centrará la tarjeta blanca si sobra espacio en el monitor */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .agenda-controls { 
@@ -110,48 +114,64 @@ body {
     background: var(--white); 
     border-radius: 30px; 
     box-shadow: 0 20px 40px rgba(0,0,0,0.03); 
-    /* PERMITIR SCROLL */
+    
+    /* CAMBIO CLAVE: La tarjeta solo mide lo que mide la agenda */
+    width: max-content; 
+    /* Si la pantalla es muy pequeña, permite scroll */
+    max-width: 100%; 
+    
     overflow-x: auto; 
     overflow-y: hidden;
-    -webkit-overflow-scrolling: touch; 
+    -webkit-overflow-scrolling: touch;
 }
 
 .grid-header, .agenda-row { 
-    display: grid; 
-    /* 90px para la hora y 6 columnas de 200px fijas */
-    grid-template-columns: 90px repeat(6, 200px); 
-    /* El ancho total es la suma: 90 + (6*200) = 1290px */
-    min-width: 1290px; 
+    display: grid !important; 
+    grid-template-columns: 90px repeat(6, 150px) !important; 
+    width: max-content; /* Obliga a que no se estiren */
 }
 
+/* Esto centra los textos E1, E2, E3... */
 .h-cell { 
-    padding: 15px; 
-    text-align: center; 
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 100%;
+    width: 100%;
+    padding: 15px 0 !important;
     color: var(--grey); 
     font-weight: 800; 
-    font-size: 0.75rem; 
+    font-size: 0.85rem;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 .agenda-row { 
     display: grid; 
-    grid-template-columns: 90px repeat(6, 1fr); 
-    border-bottom: 2px solid #ced4da; /* Línea horizontal entre horas más gruesa */
+    /* IMPORTANTE: Mismas medidas que la cabecera */
+    grid-template-columns: 90px repeat(6, 150px); 
+    min-width: 990px; 
+    border-bottom: 2px solid #ced4da;
 }
 
 .time-label { 
     display: flex; 
     align-items: center; 
-    justify-content: center; 
+    justify-content: center; /* Centra la hora en su celda */
     font-weight: 800; 
     font-size: 1.1rem; 
-    height: 110px; /* Ajustado para que las celdas sean altas y cómodas */
+    height: 100px;           /* Ajustado a la nueva altura que hablamos */
     transition: 0.3s; 
 }
 
 .sem-orange { background: #ff9f43 !important; color: white !important; }
 .sem-red { background: #ee5d50 !important; color: white !important; }
 
-.slot-cell { 
+.slot-cell {
+    display: flex;
+    justify-content: center; /* Centra la cita horizontalmente */
+    align-items: center;     /* Centra la cita verticalmente */
+    padding: 8px;
     padding: 10px; 
     position: relative; 
     border-right: 2px solid #ced4da;
