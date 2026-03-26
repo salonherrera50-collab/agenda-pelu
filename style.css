@@ -151,9 +151,17 @@ body {
 .slot-cell { 
     padding: 8px; 
     position: relative; 
-    border-right: 2px solid #ced4da; /* Línea vertical entre empleados más gruesa */
+    border-right: 2px solid #ced4da; /* Tu línea vertical gruesa */
     cursor: pointer; 
+
+    /* ESTO EVITA QUE LA CELDA SE DEFORME */
+    height: 90px;             /* Ajusta este número a la altura que prefieras */
+    min-height: 90px;         /* No deja que se encoja */
+    max-height: 90px;         /* No deja que crezca si hay mucho texto */
+    overflow: hidden;         /* Corta lo que intente salirse */
+    box-sizing: border-box;   /* Para que el padding no sume tamaño extra */
 }
+
 .slot-cell:last-child {
     border-right: none;
 }
@@ -168,6 +176,11 @@ body {
     padding: 15px; 
     box-sizing: border-box; 
     position: relative; 
+    
+    /* ESTO EVITA QUE EL CONTENIDO ESTIRE LA CELDA */
+    overflow: hidden;         /* Corta lo que sobresalga */
+    width: 100%;              /* Se ajusta al ancho de .slot-cell */
+    max-height: 100%;         /* No permite que la tarjeta sea más alta que la celda */
 }
 
 .occupied.confirmed { background: var(--success); }
@@ -178,6 +191,8 @@ body {
     right: 8px; 
     color: #ffd93d; 
     font-size: 0.9rem; 
+    /* Aseguramos que el icono no se desplace si hay mucho texto */
+    z-index: 10;
 }
 
 .close-large {
@@ -350,32 +365,35 @@ body {
 
 .client-name-display {
     cursor: pointer;
-    text-decoration: none; /* Quitamos el subrayado para que la etiqueta sea más limpia */
-    color: rgba(0, 0, 0, 0.85); /* Negro sólido y elegante */
-    font-size: 0.95rem;          /* Un tamaño equilibrado */
-    font-weight: 800;           /* Extra negrita */
+    text-decoration: none;
+    color: rgba(0, 0, 0, 0.85);
+    font-size: 0.95rem;
+    font-weight: 800;
     
-    /* ESTO CREA LA CAJITA BLANCA SEMITRANSPARENTE */
-    background: rgba(255, 255, 255, 0.65); /* Blanco con 65% de opacidad */
-    padding: 6px 12px;           /* Espacio interno para que respire el texto */
-    border-radius: 8px;          /* Bordes redondeados y suaves */
+    /* TU DISEÑO DE CAJITA MANTENIDO AL 100% */
+    background: rgba(255, 255, 255, 0.65);
+    padding: 6px 12px;
+    border-radius: 8px;
     
-    display: inline-block;       /* Solo ocupa el ancho del texto, no toda la línea */
-    margin-bottom: 8px;          /* Un poco más de aire con el servicio */
+    /* CONTROL DE FLUJO */
+    display: block;              /* Cambiado a block para que el margin-bottom y el truncado sean más precisos */
+    margin-bottom: 8px;
+    text-align: center;          /* Mantiene el nombre centrado dentro de su cajita */
     
-    /* Aseguramos que el texto largo no rompa la etiqueta */
-    max-width: 90%;             /* Evita que se pegue a los bordes de la celda */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;    
+    /* EL ESCUDO PARA LA CELDA */
+    max-width: 100%;             /* No deja que la caja blanca sea más ancha que la celda */
+    box-sizing: border-box;      /* Incluye el padding en el ancho total */
+    white-space: nowrap;         /* Fuerza una sola línea */
+    overflow: hidden;            /* Corta el texto que sobre */
+    text-overflow: ellipsis;     /* Pone los "..." si el nombre no cabe */
     
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Una sombra muy suave para dar relieve */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     transition: all 0.2s;
 }
 
-/* Efecto al pasar el ratón (o tocar en tablet) sobre el nombre */
+/* Tu efecto hover se mantiene igual */
 .client-name-display:hover {
-    background: rgba(255, 255, 255, 0.9); /* Se vuelve más blanco al interactuar */
+    background: rgba(255, 255, 255, 0.9);
 }
 
 /* El servicio sigue resaltando en blanco/claro debajo de la etiqueta */
@@ -383,12 +401,18 @@ body {
     display: block;
     font-size: 1.15rem;
     font-weight: 800;
-    color: #ffffff; /* Blanco puro */
-    line-height: 1;
+    color: #ffffff;
+    line-height: 1.1;           /* Ajustado ligeramente para que no corte las letras por arriba/abajo */
     text-transform: uppercase;
-    text-shadow: 0px 1px 3px rgba(0,0,0,0.3); /* Sombra para que resalte */
+    text-shadow: 0px 1px 3px rgba(0,0,0,0.3);
+    
+    /* EL ESCUDO PARA QUE NO DEFORME LA CELDA */
+    width: 100%;                /* Ocupa el ancho de la tarjeta */
+    white-space: nowrap;        /* Prohíbe saltar a la siguiente línea */
+    overflow: hidden;           /* Esconde lo que sobra */
+    text-overflow: ellipsis;    /* Añade los "..." si el texto es muy largo */
+    text-align: center;         /* Asegura que el servicio esté centrado */
 }
-
 /* El icono de nota más discreto */
 .note-icon-mini {
     position: absolute;
@@ -415,4 +439,30 @@ body {
     0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0.7); }
     70% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 0 8px rgba(255, 242, 0, 0); }
     100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 242, 0, 0); }
+}
+/* Este es el contenedor que permite el movimiento lateral */
+#agenda-container {
+    width: 100%;
+    overflow-x: auto;         /* Activa el scroll horizontal */
+    overflow-y: hidden;       /* Evita conflictos con el scroll vertical */
+    -webkit-overflow-scrolling: touch; /* Hace que el scroll sea suave en tablets/móviles */
+}
+
+/* Forzamos a que la agenda tenga un ancho mínimo para que no se compriman las celdas */
+#agenda-body {
+    min-width: 800px;         /* Ajusta este valor según cuánto espacio quieras que ocupen las 6 columnas */
+    display: block;           /* Asegura que se comporte como un bloque deslizable */
+}
+
+/* Para que la cabecera (los nombres de los empleados) también se mueva a la vez */
+.agenda-header {
+    min-width: 800px;         /* Debe ser el mismo ancho que el body */
+    display: flex;
+}
+.sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: #f8f9fa !important; /* El color de fondo de tu columna de horas */
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Una sombra sutil para separarla de las citas */
 }

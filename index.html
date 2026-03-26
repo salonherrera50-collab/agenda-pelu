@@ -73,22 +73,32 @@
 
         <main class="main-content">
             <section id="agenda" class="tab-content">
-                <div class="agenda-controls">
-                    <button class="btn-nav-large" onclick="changeDate(-1)"><i class="fas fa-chevron-left"></i></button>
-                    <h1 id="agenda-title">CARGANDO...</h1>
-                    <button class="btn-nav-large" onclick="changeDate(1)"><i class="fas fa-chevron-right"></i></button>
+    <div class="agenda-controls">
+        <button class="btn-nav-large" onclick="changeDate(-1)"><i class="fas fa-chevron-left"></i></button>
+        <h1 id="agenda-title">CARGANDO...</h1>
+        <button class="btn-nav-large" onclick="changeDate(1)"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+    <!-- NUEVO CONTENEDOR PARA SCROLL LATERAL -->
+    <div class="agenda-outer-container">
+        <div class="agenda-card">
+            <div class="agenda-grid">
+                <!-- Cabecera de empleados -->
+                <div class="grid-header">
+                    <div class="h-cell sticky-col">HORA</div>
+                    <div class="h-cell">E1</div>
+                    <div class="h-cell">E2</div>
+                    <div class="h-cell">E3</div>
+                    <div class="h-cell">E4</div>
+                    <div class="h-cell">E5</div>
+                    <div class="h-cell">E6</div>
                 </div>
-                <div class="agenda-card">
-                    <div class="agenda-grid">
-                        <div class="grid-header">
-                            <div class="h-cell">HORA</div>
-                            <div class="h-cell">E1</div><div class="h-cell">E2</div><div class="h-cell">E3</div>
-                            <div class="h-cell">E4</div><div class="h-cell">E5</div><div class="h-cell">E6</div>
-                        </div>
-                        <div id="agenda-body"></div>
-                    </div>
-                </div>
-            </section>
+                <!-- Cuerpo de la agenda -->
+                <div id="agenda-body"></div>
+            </div>
+        </div>
+    </div>
+</section>
 
             <section id="clientes" class="tab-content" style="display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">

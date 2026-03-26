@@ -169,7 +169,7 @@ function buildAgenda() {
             const enHora = hoy.filter(c => c.hora === time).length;
             let colorStyle = (enHora >= 6) ? 'background:#ee5d50; color:white; border-radius:5px;' : (enHora >= 4 ? 'background:#ff9f43; color:white; border-radius:5px;' : '');
 
-            row.innerHTML = `<div class="time-label" style="${colorStyle}">${time}</div>`;
+            row.innerHTML = `<div class="time-label sticky-col" style="${colorStyle}">${time}</div>`;
             const bloqParcial = bloqueosHoy.find(b => b.tipo === 'partial' && time >= b.inicio && time < b.fin);
 
             for (let i = 1; i <= 6; i++) {
