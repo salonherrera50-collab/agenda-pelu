@@ -463,6 +463,7 @@ body {
     position: sticky;
     left: 0;
     z-index: 10;
-    background: #f8f9fa !important; /* El color de fondo de tu columna de horas */
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1); /* Una sombra sutil para separarla de las citas */
+    /* Quitamos el background fijo para que el JS pueda pintar el suyo */
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1); 
+    border-right: 1px solid #ddd;
 }
