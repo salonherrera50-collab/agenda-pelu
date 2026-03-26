@@ -107,16 +107,32 @@ body {
 
 .btn-nav-large:hover { transform: scale(1.05); }
 
-.agenda-card {
-    /* ... tus otras propiedades ... */
-    position: relative;
-    z-index: 1; /* Esto crea un nuevo contexto para que no pelee con el sidebar */
+.agenda-card { 
+    background: var(--white); 
+    border-radius: 30px; 
+    box-shadow: 0 20px 40px rgba(0,0,0,0.03); 
+    
+    /* CAMBIO AQUÍ: Volvemos a permitir que la tarjeta ocupe el ancho disponible */
+    width: 100%; 
+    max-width: 100%; 
+    
+    /* Esto es lo que activa las barras de desplazamiento */
+    overflow-x: auto; 
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: block;
 }
 
 .grid-header, .agenda-row { 
     display: grid !important; 
+    /* 90px + (6 x 150px) */
     grid-template-columns: 90px repeat(6, 150px) !important; 
-    width: max-content; /* Obliga a que no se estiren */
+    
+    /* Mantenemos esto para que E6 no sea gigante */
+    width: max-content; 
+    
+    border-bottom: 2px solid #ced4da;
+    align-items: center;
 }
 
 /* Esto centra los textos E1, E2, E3... */
