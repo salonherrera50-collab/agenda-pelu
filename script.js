@@ -52,6 +52,7 @@ function iniciarEscuchasFirebase() {
     obtenerNotasFirebase();
     obtenerBloqueosFirebase();
     obtenerUsuariosFirebase();
+    obtenerRecurrentesFirebase();
 }
 
 // --- 3. NAVEGACIÓN Y CALENDARIO ---
@@ -985,4 +986,230 @@ async function irACitaYSalir(fechaCita, horaCita) {
             }, 2500);
         }
     }, 600);
+}
+// --- SISTEMA DE CLIENTAS FIJAS (OPTIMIZADO) ---
+let dbRecurrentes = [];
+
+// 1. ESCUCHA DE FIJAS
+function obtenerRecurrentesFirebase() {
+    console.log("Iniciando escucha de clientas fijas...");
+    db.collection("recurrentes").onSnapshot((snapshot) => {
+        dbRecurrentes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Clientas fijas cargadas:", dbRecurrentes.length);
+        renderRecurrentesList(); 
+    }, (error) => {
+        console.error("Error en Snapshot recurrentes:", error);
+    });
+}
+
+// 2. GUARDAR Y GENERAR
+async function guardarYGenerarFija() {
+    // 1. Captura de elementos (incluyendo el nuevo campo de ID para edición)
+    const elIdEdicion = document.getElementById('edit-rec-id');
+    const elNombre = document.getElementById('rec-nombre');
+    const elDia = document.getElementById('rec-dia');
+    const elHora = document.getElementById('rec-hora');
+    const elEspacio = document.getElementById('rec-espacio');
+    const elSemanas = document.getElementById('rec-semanas');
+
+    if (!elNombre || !elHora) return alert("Error: No se encuentran los campos en el HTML");
+
+    const idEdicion = elIdEdicion ? elIdEdicion.value : "";
+    const nombre = elNombre.value.toUpperCase().trim();
+    const dia = parseInt(elDia.value);
+    const hora = elHora.value;
+    const espacio = elEspacio.value;
+    const semanas = elSemanas ? parseInt(elSemanas.value) : 1;
+
+    if (!nombre || !hora) {
+        alert("Por favor, introduce el nombre y la hora.");
+        return;
+    }
+
+    const cliente = dbClientes.find(c => c.nombre === nombre);
+    const telefono = cliente ? cliente.telefono : "---";
+
+    try {
+        if (idEdicion) {
+            // --- MODO EDICIÓN ---
+            console.log(`Actualizando ficha de ${nombre}...`);
+            
+            await db.collection("recurrentes").doc(idEdicion).update({
+                nombre: nombre,
+                telefono: telefono,
+                diaSemana: dia,
+                hora: hora,
+                espacio: espacio,
+                // No cambiamos la fecha de alta original, pero podemos añadir fecha de edición
+                ultimaEdicion: new Date().toISOString()
+            });
+
+            // Resetear el formulario a modo normal
+            elIdEdicion.value = "";
+            const btnPrincipal = document.querySelector('button[onclick="guardarYGenerarFija()"]');
+            if (btnPrincipal) {
+                btnPrincipal.innerHTML = '<i class="fas fa-magic"></i> GUARDAR Y GENERAR CITAS';
+                btnPrincipal.style.background = "#6c5ce7";
+            }
+            // Mostrar de nuevo el selector de semanas por si acaso
+            const rowSemanas = elSemanas.closest('.field');
+            if (rowSemanas) rowSemanas.style.display = 'block';
+
+            alert("Ficha de clienta fija actualizada correctamente.");
+
+        } else {
+            // --- MODO CREACIÓN (Tu función original intacta) ---
+            console.log(`Iniciando proceso nuevo para ${nombre}...`);
+
+            // A. Guardar en lista de recurrentes
+            await db.collection("recurrentes").add({
+                nombre: nombre,
+                telefono: telefono,
+                diaSemana: dia,
+                hora: hora,
+                espacio: espacio,
+                servicio: "CITA FIJA",
+                fechaAlta: new Date().toISOString()
+            });
+
+            // B. Generar citas masivas
+            let creadas = 0;
+            let hoy = new Date();
+
+            for (let s = 0; s < semanas; s++) {
+                let fechaCita = new Date();
+                fechaCita.setDate(hoy.getDate() + (s * 7));
+                
+                const diaActual = fechaCita.getDay();
+                const diferencia = (dia - diaActual + 7) % 7;
+                fechaCita.setDate(fechaCita.getDate() + diferencia);
+                
+                const dateStr = getLocalDateString(fechaCita);
+
+                const snapshot = await db.collection("citas")
+                    .where("fecha", "==", dateStr)
+                    .where("hora", "==", hora)
+                    .where("espacio", "==", espacio)
+                    .get();
+
+                if (snapshot.empty) {
+                    await db.collection("citas").add({
+                        nombre: nombre,
+                        telefono: telefono,
+                        servicio: "CITA FIJA",
+                        fecha: dateStr,
+                        hora: hora,
+                        espacio: espacio,
+                        confirmada: false,
+                        esBloqueo: false,
+                        notas: `Fija (${s + 1}/${semanas})`,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    creadas++;
+                }
+            }
+            alert(`¡Éxito! Clienta guardada y ${creadas} citas creadas.`);
+        }
+
+        // Limpieza común para ambos modos
+        elNombre.value = "";
+        if(typeof buildAgenda === 'function') buildAgenda();
+
+    } catch (e) {
+        console.error("Error íntegro:", e);
+        alert("Error crítico: " + e.message);
+    }
+}
+
+// 3. RENDERIZADO DE LISTA
+// --- SISTEMA DE CLIENTAS FIJAS CON EDICIÓN ---
+
+function renderRecurrentesList() {
+    const container = document.getElementById('lista-recurrentes');
+    if (!container) {
+        console.warn("No se encontró el contenedor 'lista-recurrentes'");
+        return;
+    }
+    
+    const diasLabels = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    
+    if (dbRecurrentes.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#999; padding:20px; background:#f9f9f9; border-radius:10px;">No hay clientas fijas configuradas.</div>';
+        return;
+    }
+
+    let html = `
+    <div class="table-card" style="overflow-x:auto;">
+        <table style="width:100%; font-size:0.85rem; border-collapse:collapse; min-width:400px;">
+            <thead>
+                <tr style="background:#f8f9fa; border-bottom:2px solid #6c5ce7; color:#2d3436; text-align:left;">
+                    <th style="padding:12px;">CLIENTA</th>
+                    <th style="padding:12px;">DÍA</th>
+                    <th style="padding:12px;">HORA</th>
+                    <th style="padding:12px;">E</th>
+                    <th style="padding:12px; text-align:right;">ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    
+    dbRecurrentes.forEach(r => {
+        html += `
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:10px;"><strong>${r.nombre}</strong><br><small style="color:#666">${r.telefono || '---'}</small></td>
+            <td style="padding:10px;">${diasLabels[r.diaSemana]}</td>
+            <td style="padding:10px;"><span style="background:#e8f0fe; padding:3px 8px; border-radius:5px;">${r.hora}</span></td>
+            <td style="padding:10px;">E${r.espacio}</td>
+            <td style="padding:10px; text-align:right; white-space:nowrap;">
+                <!-- BOTÓN EDITAR (NUEVO) -->
+                <button onclick="cargarDatosEdicionFija('${r.id}')" style="background:none; border:none; color:#6c5ce7; cursor:pointer; font-size:1.1rem; margin-right:15px;" title="Editar Ficha">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <!-- BOTÓN ELIMINAR -->
+                <button onclick="eliminarRecurrencia('${r.id}')" style="background:none; border:none; color:#ee5d50; cursor:pointer; font-size:1.1rem;" title="Eliminar de la lista">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>
+        </tr>`;
+    });
+    
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+// FUNCIÓN PARA CARGAR LOS DATOS EN EL FORMULARIO
+function cargarDatosEdicionFija(id) {
+    const fija = dbRecurrentes.find(r => r.id === id);
+    if (!fija) return;
+
+    // 1. Rellenamos los campos del formulario con los datos actuales
+    document.getElementById('edit-rec-id').value = fija.id;
+    document.getElementById('rec-nombre').value = fija.nombre;
+    document.getElementById('rec-dia').value = fija.diaSemana;
+    document.getElementById('rec-hora').value = fija.hora;
+    document.getElementById('rec-espacio').value = fija.espacio;
+    
+    // 2. Modificamos el botón principal para que sea de "Actualizar"
+    const btnPrincipal = document.querySelector('button[onclick="guardarYGenerarFija()"]');
+    if (btnPrincipal) {
+        btnPrincipal.innerHTML = '<i class="fas fa-sync-alt"></i> ACTUALIZAR DATOS FIJOS';
+        btnPrincipal.style.background = "#2ecc71"; // Cambia a verde
+    }
+
+    // 3. Ocultamos el selector de semanas (en edición no solemos querer re-generar todo)
+    const rowSemanas = document.getElementById('rec-semanas').closest('.field');
+    if (rowSemanas) rowSemanas.style.display = 'none';
+
+    // 4. Scroll suave al formulario
+    document.getElementById('rec-nombre').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('rec-nombre').focus();
+}
+
+async function eliminarRecurrencia(id) {
+    if (confirm("¿Eliminar de la lista de fijas? (Las citas de la agenda se mantienen)")) {
+        try {
+            await db.collection("recurrentes").doc(id).delete();
+        } catch (e) {
+            alert("Error al eliminar: " + e.message);
+        }
+    }
 }
