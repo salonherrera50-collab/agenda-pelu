@@ -531,51 +531,78 @@ function logout() { isLogged = false; showTab('agenda'); }
 
 // --- 9. MODALES Y AUXILIARES ---
 function openAppModal(id, time, e) {
-    // 1. Evitamos apertura accidental si hay iconos
+    // 1. Evitamos apertura accidental
     if (e && e.target.tagName === 'I' && !e.target.classList.contains('fa-edit')) return;
     
     currentCellId = id;
     const esp = id.split('-')[2];
     const dateStr = getLocalDateString(currentDate);
     
+    // Limpiar formulario
     document.getElementById('appointment-form').reset();
     document.getElementById('modal-time-display').innerText = `${time} - E${esp}`;
     
     const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
     
-    // --- LÓGICA DE VISIBILIDAD DE BOTONES ---
-    const contenedorNueva = document.getElementById('container-nueva');   // Bloque Gris y Azul
-    const contenedorSonia = document.getElementById('tablet-actions');    // Bloque de 3 botones (Adaptar, OK, Borrar)
+    const contenedorNueva = document.getElementById('container-nueva');   
+    const contenedorSonia = document.getElementById('tablet-actions');    
 
     if (citaExistente) {
-        // CASO: CITA YA EXISTENTE (Captura SONIA)
+        // --- CASO: CITA YA EXISTENTE ---
         document.getElementById('app-name').value = citaExistente.nombre;
         document.getElementById('app-phone').value = citaExistente.telefono;
         document.getElementById('app-service').value = citaExistente.servicio;
         document.getElementById('app-notes').value = citaExistente.notas;
 
-        // ACCIÓN: Mostramos los 3 de colores y OCULTAMOS los grandes (Bloquear/Guardar)
         if (contenedorSonia) contenedorSonia.style.display = 'grid';
         if (contenedorNueva) contenedorNueva.style.display = 'none';
         
-        // Configurar acciones de los botones de confirmación y borrado
-        const btnConf = document.getElementById('btn-confirmar-modal');
-        const btnBorr = document.getElementById('btn-borrar-modal');
+        // Localizamos los 3 botones del contenedor 'tablet-actions'
+        const botones = contenedorSonia.querySelectorAll('button');
+        const btnAdaptar = botones[0]; // El primer botón (Azul)
+        const btnConf = document.getElementById('btn-confirmar-modal'); // Verde
+        const btnBorr = document.getElementById('btn-borrar-modal');    // Rojo
 
+        // --- LÓGICA PARA RECUPERAR EL BOTÓN DE ACEPTAR CITA WEB ---
+        const esDeWeb = citaExistente.origen === 'web' && !citaExistente.confirmada;
+
+        if (esDeWeb) {
+            // TRANSFORMACIÓN: De "ADAPTAR" a "ACEPTAR WEB"
+            btnAdaptar.type = "button"; // Evitamos que envíe el formulario por defecto
+            btnAdaptar.innerHTML = '<i class="fas fa-check-double" style="font-size: 14px;"></i><span style="font-size: 9px; text-transform: uppercase;">ACEPTAR WEB</span>';
+            btnAdaptar.style.background = "#6c5ce7"; // Color lila de gestión
+            btnAdaptar.onclick = (event) => {
+                confirmarCitaWeb(citaExistente.id, event);
+                closeModal();
+            };
+        } else {
+            // RESTAURACIÓN: Volver a ser el botón "ADAPTAR" normal
+            btnAdaptar.type = "submit";
+            btnAdaptar.innerHTML = '<i class="fas fa-sync-alt" style="font-size: 14px;"></i><span style="font-size: 9px; text-transform: uppercase;">ADAPTAR</span>';
+            btnAdaptar.style.background = "#4361ee"; // Tu azul original
+            btnAdaptar.onclick = null; 
+        }
+
+        // Configurar botón OK (Verde)
         if (btnConf) {
             btnConf.onclick = (event) => {
-                confirmCita(citaExistente.id, event);
+                // Si tienes la función confirmarCita definida, la llamamos:
+                if(typeof confirmCita === 'function') confirmCita(citaExistente.id, event);
+                else confirmarCita(); // Según tu HTML llamas a confirmarCita()
                 closeModal();
             };
         }
+
+        // Configurar botón BORRAR (Rojo)
         if (btnBorr) {
             btnBorr.onclick = (event) => {
-                deleteCita(citaExistente.id, event).then(() => closeModal());
+                // Usamos tu función deleteApp() del HTML o deleteCita() del JS
+                if(typeof deleteCita === 'function') deleteCita(citaExistente.id, event).then(() => closeModal());
+                else deleteApp(); 
             };
         }
     } else {
-        // CASO: CELDA VACÍA (Captura 12:00 - E3)
-        // ACCIÓN: Mostramos los botones grandes y OCULTAMOS la fila de 3
+        // --- CASO: CELDA VACÍA ---
         if (contenedorSonia) contenedorSonia.style.display = 'none';
         if (contenedorNueva) contenedorNueva.style.display = 'block';
     }
