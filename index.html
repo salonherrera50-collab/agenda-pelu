@@ -387,24 +387,34 @@
     </div>
 </div>
 
-   <!-- 1. MODAL FICHA CLIENTE (CON AUTOCOMPLETE DESACTIVADO) -->
-    <div id="cliente-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeClienteModal()">&times;</span>
-            <h3>Ficha Cliente</h3>
-            <form id="cliente-form" autocomplete="off">
-                <input type="hidden" id="edit-client-id">
-                <div class="field"><label>Nombre</label><input type="text" id="cli-nombre" required autocomplete="off"></div>
-                <div class="field"><label>Teléfono</label><input type="tel" id="cli-telefono" required autocomplete="off"></div>
-                <div style="display:flex; gap:10px;">
-                    <div class="field" style="flex:1;"><label>Tinte</label><input type="text" id="cli-tinte" autocomplete="off"></div>
-                    <div class="field" style="flex:1;"><label>Matiz</label><input type="text" id="cli-matiz" autocomplete="off"></div>
-                </div>
-                <div class="field"><label>Observaciones/Mezclas</label><textarea id="cli-notas" style="height:100px;"></textarea></div>
-                <button type="submit" class="btn-main">GUARDAR FICHA</button>
-            </form>
+   <!-- 1. MODAL FICHA CLIENTE (CON BOTÓN DE PAGOS AÑADIDO) -->
+<div id="cliente-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeClienteModal()">&times;</span>
+        
+        <!-- Cabecera con título y botón de acción -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-right: 30px;">
+            <h3 style="margin:0;">Ficha Cliente</h3>
+            
+            <!-- Botón de acceso rápido al Historial de Pagos -->
+            <button type="button" onclick="abrirHistorialDesdeFicha()" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px; box-shadow: 0 2px 5px rgba(108, 92, 231, 0.3);">
+                <i class="fas fa-file-invoice-dollar"></i> VER PAGOS
+            </button>
         </div>
+
+        <form id="cliente-form" autocomplete="off">
+            <input type="hidden" id="edit-client-id">
+            <div class="field"><label>Nombre</label><input type="text" id="cli-nombre" required autocomplete="off"></div>
+            <div class="field"><label>Teléfono</label><input type="tel" id="cli-telefono" required autocomplete="off"></div>
+            <div style="display:flex; gap:10px;">
+                <div class="field" style="flex:1;"><label>Tinte</label><input type="text" id="cli-tinte" autocomplete="off"></div>
+                <div style="flex:1;" class="field"><label>Matiz</label><input type="text" id="cli-matiz" autocomplete="off"></div>
+            </div>
+            <div class="field"><label>Observaciones/Mezclas</label><textarea id="cli-notas" style="height:100px;"></textarea></div>
+            <button type="submit" class="btn-main">GUARDAR FICHA</button>
+        </form>
     </div>
+</div>
 
     <!-- 2. MODAL INFO CLIENTE -->
     <div id="stats-modal" class="modal"><div class="modal-content"><span class="close" onclick="document.getElementById('stats-modal').style.display='none'">&times;</span><h3>Info Cliente</h3><div id="stats-content"></div></div></div>
@@ -442,29 +452,168 @@
         </div>
     </div>
 </div>
-    <script>
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAcmTCIKmbTPGxTBtD_fRxt7-yb4lZ4plM",
-  authDomain: "agenda-pelu-e31a9.firebaseapp.com",
-  projectId: "agenda-pelu-e31a9",
-  storageBucket: "agenda-pelu-e31a9.firebasestorage.app",
-  messagingSenderId: "550887776386",
-  appId: "1:550887776386:web:c908126b681ef5ad02549b",
-  measurementId: "G-P4P6G5XM1P"
-};
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-    </script>
+   <!-- ... (esto va después del cierre del modal de búsqueda global) ... -->
 
-    <script src="script.js"></script>
-    <script>
+<!-- NUEVO: MODAL HISTORIAL DE PAGOS (EL CUADRO QUE FALTABA) -->
+<div id="modal-historial-pago" style="display:none; position: fixed; z-index: 999999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); overflow-y: auto;">
+    <div style="background: white; max-width: 500px; margin: 30px auto; padding: 20px; border-radius: 15px; position: relative; font-family: sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom: 2px solid #f1f1f1; padding-bottom: 10px;">
+            <h2 id="historial-cliente-nombre" style="margin:0; color:#6c5ce7; font-size: 1.2rem;">Historial de Pagos</h2>
+            <button onclick="cerrarHistorial()" style="background:none; border:none; font-size:2rem; cursor:pointer; color:#999; line-height:1;">&times;</button>
+        </div>
+
+        <!-- Formulario para añadir nuevas notas -->
+        <div style="background:#f8f9fa; padding:12px; border-radius:10px; margin-bottom:15px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <input type="date" id="pago-fecha" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
+                <input type="number" id="pago-precio" placeholder="Precio €" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="pago-servicio" placeholder="Descripción del servicio..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px;">
+                <button onclick="guardarNuevaLineaHistorial()" style="background:#4cd137; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla de resultados -->
+        <div style="max-height: 250px; overflow-y: auto; border-radius: 8px;">
+            <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead style="background:#eee; position: sticky; top:0;">
+                    <tr>
+                        <th style="text-align:left; padding:10px;">Fecha</th>
+                        <th style="text-align:left; padding:10px;">Servicio</th>
+                        <th style="text-align:right; padding:10px;">€</th>
+                        <th style="padding:10px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="historial-pago-body">
+                    <!-- Las filas se cargan aquí con JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top:15px; text-align:right; font-size:1.2rem; border-top:2px solid #eee; padding-top:10px;">
+            <strong>TOTAL: <span id="historial-total-suma" style="color:#2ecc71;">0.00 €</span></strong>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+
+<script>
+    // Tu configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAcmTCIKmbTPGxTBtD_fRxt7-yb4lZ4plM",
+      authDomain: "agenda-pelu-e31a9.firebaseapp.com",
+      projectId: "agenda-pelu-e31a9",
+      storageBucket: "agenda-pelu-e31a9.firebasestorage.app",
+      messagingSenderId: "550887776386",
+      appId: "1:550887776386:web:c908126b681ef5ad02549b",
+      measurementId: "G-P4P6G5XM1P"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+</script>
+
+<script src="script.js"></script>
+
+<script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
   }
-  
+
+  // --- FUNCIONES DE HISTORIAL DE PAGOS ---
+  let clienteActualHistorialId = null;
+
+  function abrirHistorialPago(id) {
+      console.log("Intentando abrir historial para ID:", id); // Para ver en F12
+      clienteActualHistorialId = id;
+      
+      // Buscamos el cliente en la lista global que carga tu script.js
+      const cliente = dbClientes.find(c => c.id === id);
+      if (!cliente) {
+          console.error("Cliente no encontrado en dbClientes");
+          return;
+      }
+
+      document.getElementById('historial-cliente-nombre').innerText = "Notas de " + cliente.nombre;
+      
+      document.getElementById('pago-servicio').value = '';
+      document.getElementById('pago-precio').value = '';
+      const hoy = new Date().toISOString().split('T')[0];
+      document.getElementById('pago-fecha').value = hoy;
+
+      renderTablaHistorial(cliente.historial || []);
+      document.getElementById('modal-historial-pago').style.display = 'block';
+  }
+
+  function renderTablaHistorial(historial) {
+      const body = document.getElementById('historial-pago-body');
+      const totalEl = document.getElementById('historial-total-suma');
+      body.innerHTML = '';
+      let sumaTotal = 0;
+
+      historial.forEach((item, index) => {
+          const precio = parseFloat(item.precio) || 0;
+          sumaTotal += precio;
+          body.innerHTML += `
+              <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding:10px;">${item.fecha}</td>
+                  <td style="padding:10px;">${item.servicio}</td>
+                  <td style="padding:10px; text-align:right;"><b>${precio.toFixed(2)}€</b></td>
+                  <td style="padding:10px; text-align:center;">
+                      <button onclick="eliminarLineaHistorial(${index})" style="color:#ee5d50; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                  </td>
+              </tr>`;
+      });
+      totalEl.innerText = sumaTotal.toFixed(2) + " €";
+  }
+
+  async function guardarNuevaLineaHistorial() {
+      const fecha = document.getElementById('pago-fecha').value;
+      const servicio = document.getElementById('pago-servicio').value;
+      const precio = document.getElementById('pago-precio').value;
+
+      if (!servicio || !precio) return alert("Escribe el servicio y el precio");
+
+      const cliente = dbClientes.find(c => c.id === clienteActualHistorialId);
+      const nuevoHistorial = cliente.historial || [];
+      
+      nuevoHistorial.push({ 
+          fecha, 
+          servicio: servicio.toUpperCase(), 
+          precio: parseFloat(precio) 
+      });
+
+      try {
+          await db.collection("clientes").doc(clienteActualHistorialId).update({ historial: nuevoHistorial });
+          renderTablaHistorial(nuevoHistorial);
+          document.getElementById('pago-servicio').value = '';
+          document.getElementById('pago-precio').value = '';
+      } catch (e) {
+          console.error("Error al guardar pago:", e);
+      }
+  }
+
+  function eliminarLineaHistorial(index) {
+      if(!confirm("¿Borrar esta nota?")) return;
+      const cliente = dbClientes.find(c => c.id === clienteActualHistorialId);
+      const nuevoHistorial = [...cliente.historial];
+      nuevoHistorial.splice(index, 1);
+      
+      db.collection("clientes").doc(clienteActualHistorialId).update({ historial: nuevoHistorial });
+      renderTablaHistorial(nuevoHistorial);
+  }
+
+  function cerrarHistorial() {
+      document.getElementById('modal-historial-pago').style.display = 'none';
+  }
 </script>
 </body>
 </html>

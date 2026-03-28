@@ -493,3 +493,34 @@ body {
     box-shadow: 4px 0 10px rgba(0,0,0,0.08); 
     border-right: 2px solid #ced4da;
 }
+/* Estilos para que el historial se vea profesional */
+#modal-historial-pago .modal-content {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease-out;
+}
+
+#historial-pago-body tr:nth-child(even) {
+    background-color: #fcfcfc;
+}
+
+#historial-pago-body td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Responsivo para móviles */
+@media (max-width: 600px) {
+    #modal-historial-pago .modal-content {
+        width: 95%;
+        margin: 10px auto;
+        padding: 15px;
+    }
+}

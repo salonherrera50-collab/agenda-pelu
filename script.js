@@ -338,10 +338,47 @@ if (appForm) {
     };
 }
 
-function confirmCita(id, e) {
+async function confirmCita(id, e) {
     e.stopPropagation();
     const c = dbCitas.find(x => x.id == id);
-    if(c) db.collection("citas").doc(id).update({ confirmada: !c.confirmada });
+    if (!c) return;
+
+    const nuevoEstado = !c.confirmada;
+
+    try {
+        // 1. Actualizamos en Firebase (Cambia a verde o vuelve al estado original)
+        await db.collection("citas").doc(id).update({ confirmada: nuevoEstado });
+        console.log("Estado de cita actualizado");
+
+        // 2. Si acabamos de marcarla como CONFIRMADA (verde), comprobamos si es la última
+        if (nuevoEstado === true) {
+            const notas = c.notas || "";
+            
+            // ACTUALIZADO: Ahora busca el formato "Sesión X de Y"
+            const regex = /Sesión (\d+) de (\d+)/;
+            const match = notas.match(regex);
+
+            if (match) {
+                const actual = parseInt(match[1]); // Ejemplo: 4
+                const total = parseInt(match[2]);  // Ejemplo: 4
+
+                // Si la sesión actual es igual al total (ej: 4 de 4)
+                if (actual === total) {
+                    // Esperamos 400ms para que la trabajadora vea el cambio de color a verde en la agenda
+                    setTimeout(() => {
+                        const quiereRenovar = confirm(`¡ATENCIÓN! Acabas de completar la última sesión de ${c.nombre}.\n\n¿Quieres renovar automáticamente otras ${total} semanas con los mismos ajustes?`);
+                        
+                        if (quiereRenovar) {
+                            renovarCitasFijas(c, total);
+                        }
+                    }, 400);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error al confirmar cita:", error);
+        alert("No se pudo actualizar el estado de la cita.");
+    }
 }
 
 async function deleteCita(id, e) {
@@ -349,13 +386,14 @@ async function deleteCita(id, e) {
     if(confirm("¿Borrar esta cita?")) await db.collection("citas").doc(id).delete();
 }
 
-// --- 6. GESTIÓN DE CLIENTES ---
+// --- 6. GESTIÓN DE CLIENTES ACTUALIZADA ---
 function renderClientes(data = dbClientes) {
     const badge = document.getElementById('total-clientes-badge');
     if (badge) badge.innerText = data.length;
     const body = document.getElementById('clientes-list-body');
     if(!body) return;
     body.innerHTML = '';
+    
     data.forEach(c => {
         body.innerHTML += `<tr>
             <td><b>${c.nombre}</b></td>
@@ -363,11 +401,17 @@ function renderClientes(data = dbClientes) {
             <td>${c.tinte || '-'}/${c.matiz || '-'}</td>
             <td>
                 <div style="display:flex; gap:5px;">
-                    <a href="tel:${c.telefono}" class="btn-circle" style="background:#4cd137"><i class="fas fa-phone"></i></a>
-                    <a href="https://wa.me/34${c.telefono}" target="_blank" class="btn-circle" style="background:#25d366"><i class="fab fa-whatsapp"></i></a>
-                    <button class="btn-circle" style="background:#00a8ff" onclick="verStats('${c.id}')"><i class="fas fa-chart-line"></i></button>
-                    <button class="btn-circle" style="background:#ff9f43" onclick="editCli('${c.id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-circle" style="background:#ee5d50" onclick="deleteCli('${c.id}')"><i class="fas fa-trash"></i></button>
+                    <a href="tel:${c.telefono}" class="btn-circle" style="background:#4cd137" title="Llamar"><i class="fas fa-phone"></i></a>
+                    <a href="https://wa.me/34${c.telefono}" target="_blank" class="btn-circle" style="background:#25d366" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                    
+                    <!-- NUEVO: BOTÓN HISTORIAL DE PAGOS -->
+                    <button class="btn-circle" style="background:#6c5ce7" title="Historial de Pagos" onclick="abrirHistorialPago('${c.id}')">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </button>
+
+                    <button class="btn-circle" style="background:#00a8ff" onclick="verStats('${c.id}')" title="Estadísticas"><i class="fas fa-chart-line"></i></button>
+                    <button class="btn-circle" style="background:#ff9f43" onclick="editCli('${c.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn-circle" style="background:#ee5d50" onclick="deleteCli('${c.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
                 </div>
             </td>
         </tr>`;
@@ -379,18 +423,34 @@ if (clientForm) {
     clientForm.onsubmit = async (e) => {
         e.preventDefault();
         const id = document.getElementById('edit-client-id').value;
+        
+        // Creamos el objeto base (sin el historial)
         const cli = {
-            nombre: document.getElementById('cli-nombre').value.toUpperCase(),
-            telefono: document.getElementById('cli-telefono').value,
+            nombre: document.getElementById('cli-nombre').value.toUpperCase().trim(),
+            telefono: document.getElementById('cli-telefono').value.trim(),
             tinte: document.getElementById('cli-tinte').value,
             matiz: document.getElementById('cli-matiz').value,
             notas: document.getElementById('cli-notas').value
         };
+
         try {
-            if(id) await db.collection("clientes").doc(id).update(cli);
-            else await db.collection("clientes").add(cli);
+            if(id) {
+                // MODO EDICIÓN: Solo actualizamos los campos de texto
+                // Firebase mantendrá el campo 'historial' intacto
+                await db.collection("clientes").doc(id).update(cli);
+            } else {
+                // MODO NUEVO: Inicializamos el historial vacío
+                cli.historial = [];
+                cli.fechaAlta = new Date().toISOString();
+                await db.collection("clientes").add(cli);
+            }
             closeClienteModal();
-        } catch (error) { console.error(error); }
+            // Reset de seguridad del ID
+            document.getElementById('edit-client-id').value = "";
+        } catch (error) { 
+            console.error("Error al guardar cliente:", error);
+            alert("Error al guardar los datos.");
+        }
     };
 }
 
@@ -403,13 +463,19 @@ async function editCli(id) {
         document.getElementById('cli-tinte').value = c.tinte || '';
         document.getElementById('cli-matiz').value = c.matiz || '';
         document.getElementById('cli-notas').value = c.notas || '';
-        document.getElementById('cliente-modal').style.display = 'block';
+        
+        const modal = document.getElementById('cliente-modal');
+        if(modal) modal.style.display = 'block';
     }
 }
 
 async function deleteCli(id) {
-    if (confirm("¿Eliminar este cliente permanentemente?")) {
-        await db.collection("clientes").doc(id).delete();
+    if (confirm("¿Eliminar este cliente permanentemente? Se perderán todos sus datos e historial de notas.")) {
+        try {
+            await db.collection("clientes").doc(id).delete();
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+        }
     }
 }
 
@@ -726,20 +792,34 @@ async function actualizarEstadisticasAnuales() {
 }
 // Función para que al poner el teléfono sugiera el nombre
 function autoFillName(telefono) {
-    if (!telefono || telefono.length < 3) return; // No busca hasta que haya 3 números
+    // 1. Validación de seguridad y longitud mínima
+    if (!telefono || telefono.length < 3) return; 
     
-    // Buscamos en nuestra base de datos local de clientes
+    // 2. Buscamos en nuestra base de datos local de clientes
     const clienteEncontrado = dbClientes.find(x => x.telefono === telefono);
     
     if (clienteEncontrado) {
-        // Si lo encuentra, rellena el nombre automáticamente
-        document.getElementById('app-name').value = clienteEncontrado.nombre;
+        const inputNombre = document.getElementById('app-name');
+        if (!inputNombre) return;
+
+        // 3. Rellena el nombre automáticamente (Mantiene funcionalidad original)
+        inputNombre.value = clienteEncontrado.nombre;
         
-        // Opcional: podrías ponerle un color momentáneo para que veas que lo ha encontrado
-        document.getElementById('app-name').style.backgroundColor = "#e8f5e9";
+        // --- MEJORA: Detección de Ficha de Pagos ---
+        // Comprobamos si el cliente tiene movimientos en su historial
+        const tieneHistorial = clienteEncontrado.historial && clienteEncontrado.historial.length > 0;
+        
+        // 4. Feedback visual (Verde si es cliente nuevo/sin pagos, Azul si tiene historial)
+        inputNombre.style.transition = "background-color 0.5s"; // Suavizamos el cambio
+        inputNombre.style.backgroundColor = tieneHistorial ? "#e3f2fd" : "#e8f5e9";
+        
+        // 5. Limpieza del color tras 1.2 segundos (Mantiene funcionalidad original)
         setTimeout(() => {
-            document.getElementById('app-name').style.backgroundColor = "";
-        }, 1000);
+            inputNombre.style.backgroundColor = "";
+        }, 1200);
+
+        // Opcional: Log en consola para depuración
+        console.log(`Cliente detectado: ${clienteEncontrado.nombre} | Historial: ${tieneHistorial ? 'SÍ' : 'NO'}`);
     }
 }
 // --- FUNCIÓN PARA VOLVER AL DÍA Y HORA ACTUAL ---
@@ -810,6 +890,7 @@ async function ejecutarBusquedaGlobal() {
     const query = document.getElementById('global-search-input').value.toLowerCase().trim();
     const container = document.getElementById('global-search-results');
     
+    // 1. Validación de longitud mínima
     if (query.length < 3) {
         container.innerHTML = '';
         return;
@@ -818,21 +899,24 @@ async function ejecutarBusquedaGlobal() {
     container.innerHTML = '<div style="text-align:center; padding:15px; color:#6c5ce7;"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
 
     try {
+        // 2. Obtención de datos de citas
         const snapshot = await db.collection("citas").get();
         let resultados = [];
         const hoyString = getLocalDateString(new Date()); 
 
         snapshot.forEach(doc => {
             const data = doc.data();
+            // Buscamos en todo el contenido del documento (nombre, servicio, etc)
             const contenido = JSON.stringify(data).toLowerCase();
             if (contenido.includes(query)) {
                 const f = data.fecha || data.Fecha || "";
-                const h = data.hora || data.Hora || ""; // Capturamos la hora
+                const h = data.hora || data.Hora || "";
                 let esPasada = (f && f < hoyString);
                 resultados.push({ ...data, esPasada, f, h });
             }
         });
 
+        // 3. Botón para crear nueva cita (mantiene funcionalidad original)
         let html = `
             <div onclick="prepararFormularioYCrear('${query.toUpperCase()}')" style="background:#6c5ce7; color:white; padding:14px; border-radius:12px; margin-bottom:15px; cursor:pointer; text-align:center; font-weight:800; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2); border: 2px solid #fff; text-transform:uppercase;">
                 <i class="fas fa-user-plus"></i> NUEVA CITA PARA: ${query}
@@ -840,22 +924,39 @@ async function ejecutarBusquedaGlobal() {
         `;
 
         if (resultados.length > 0) {
-            // Ordenar: primero las futuras, luego las pasadas
+            // Ordenar: primero las próximas, luego las pasadas
             resultados.sort((a, b) => a.esPasada - b.esPasada);
             
             html += resultados.map(cita => {
                 const color = cita.esPasada ? '#e74c3c' : '#6c5ce7';
                 const fechaCita = cita.f || '---';
                 const horaCita = cita.h || '';
+                const nombreCita = (cita.nombre || cita.Nombre || "SIN NOMBRE").toUpperCase();
 
-                // Ahora pasamos FECHA y HORA a la función irACitaYSalir
+                // --- MEJORA: Vínculo con la Ficha de Pagos ---
+                // Buscamos si este nombre de la cita existe en nuestra lista global de clientes
+                const clienteRegistrado = dbClientes.find(c => c.nombre.toUpperCase() === nombreCita);
+                
+                // Si existe el cliente, preparamos un botón de "monedas" para abrir sus notas de pago
+                const btnPagoRapido = clienteRegistrado 
+                    ? `<button onclick="event.stopPropagation(); abrirHistorialPago('${clienteRegistrado.id}')" 
+                               style="background:#2ecc71; color:white; border:none; border-radius:6px; padding:4px 8px; cursor:pointer; margin-right:8px;" 
+                               title="Ver Ficha de Pagos">
+                           <i class="fas fa-coins"></i>
+                       </button>` 
+                    : '';
+
                 return `
-                    <div onclick="irACitaYSalir('${fechaCita}', '${horaCita}')" style="background:white; padding:12px; border-radius:10px; margin-bottom:8px; cursor:pointer; border:1px solid #eee; border-left: 5px solid ${color}; transition: transform 0.2s;">
+                    <div onclick="irACitaYSalir('${fechaCita}', '${horaCita}')" 
+                         style="background:white; padding:12px; border-radius:10px; margin-bottom:8px; cursor:pointer; border:1px solid #eee; border-left: 5px solid ${color}; transition: transform 0.2s;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <div style="font-weight:bold; text-transform:uppercase; font-size:12px; color:#2d3436;">${cita.nombre || cita.Nombre}</div>
-                                <div style="font-size:10px; color:${color}; font-weight:bold; margin-top:2px;">
-                                    ${cita.esPasada ? '<i class="fas fa-history"></i> HISTORIAL' : '<i class="fas fa-calendar-check"></i> PRÓXIMA'}
+                            <div style="display:flex; align-items:center;">
+                                ${btnPagoRapido}
+                                <div>
+                                    <div style="font-weight:bold; text-transform:uppercase; font-size:12px; color:#2d3436;">${nombreCita}</div>
+                                    <div style="font-size:10px; color:${color}; font-weight:bold; margin-top:2px;">
+                                        ${cita.esPasada ? '<i class="fas fa-history"></i> HISTORIAL' : '<i class="fas fa-calendar-check"></i> PRÓXIMA'}
+                                    </div>
                                 </div>
                             </div>
                             <div style="text-align:right;">
@@ -1002,9 +1103,9 @@ function obtenerRecurrentesFirebase() {
     });
 }
 
-// 2. GUARDAR Y GENERAR
+// 2. GUARDAR Y GENERAR (VERSIÓN CON ASIGNACIÓN DINÁMICA DE 6 ESPACIOS)
 async function guardarYGenerarFija() {
-    // 1. Captura de elementos (incluyendo el nuevo campo de ID para edición)
+    // 1. Captura de elementos
     const elIdEdicion = document.getElementById('edit-rec-id');
     const elNombre = document.getElementById('rec-nombre');
     const elDia = document.getElementById('rec-dia');
@@ -1018,7 +1119,7 @@ async function guardarYGenerarFija() {
     const nombre = elNombre.value.toUpperCase().trim();
     const dia = parseInt(elDia.value);
     const hora = elHora.value;
-    const espacio = elEspacio.value;
+    const espacioPreferido = elEspacio.value; 
     const semanas = elSemanas ? parseInt(elSemanas.value) : 1;
 
     if (!nombre || !hora) {
@@ -1039,41 +1140,37 @@ async function guardarYGenerarFija() {
                 telefono: telefono,
                 diaSemana: dia,
                 hora: hora,
-                espacio: espacio,
-                // No cambiamos la fecha de alta original, pero podemos añadir fecha de edición
+                espacio: espacioPreferido,
                 ultimaEdicion: new Date().toISOString()
             });
 
-            // Resetear el formulario a modo normal
             elIdEdicion.value = "";
             const btnPrincipal = document.querySelector('button[onclick="guardarYGenerarFija()"]');
             if (btnPrincipal) {
                 btnPrincipal.innerHTML = '<i class="fas fa-magic"></i> GUARDAR Y GENERAR CITAS';
                 btnPrincipal.style.background = "#6c5ce7";
             }
-            // Mostrar de nuevo el selector de semanas por si acaso
             const rowSemanas = elSemanas.closest('.field');
             if (rowSemanas) rowSemanas.style.display = 'block';
 
             alert("Ficha de clienta fija actualizada correctamente.");
 
         } else {
-            // --- MODO CREACIÓN (Tu función original intacta) ---
+            // --- MODO CREACIÓN ---
             console.log(`Iniciando proceso nuevo para ${nombre}...`);
 
-            // A. Guardar en lista de recurrentes
             await db.collection("recurrentes").add({
                 nombre: nombre,
                 telefono: telefono,
                 diaSemana: dia,
                 hora: hora,
-                espacio: espacio,
+                espacio: espacioPreferido,
                 servicio: "CITA FIJA",
                 fechaAlta: new Date().toISOString()
             });
 
-            // B. Generar citas masivas
             let creadas = 0;
+            let ocupadasCompletamente = 0;
             let hoy = new Date();
 
             for (let s = 0; s < semanas; s++) {
@@ -1086,32 +1183,69 @@ async function guardarYGenerarFija() {
                 
                 const dateStr = getLocalDateString(fechaCita);
 
-                const snapshot = await db.collection("citas")
+                let espacioAsignado = null;
+
+                // 1. Intentamos primero el espacio preferido
+                const snapshotPreferido = await db.collection("citas")
                     .where("fecha", "==", dateStr)
                     .where("hora", "==", hora)
-                    .where("espacio", "==", espacio)
+                    .where("espacio", "==", espacioPreferido)
                     .get();
 
-                if (snapshot.empty) {
+                if (snapshotPreferido.empty) {
+                    espacioAsignado = espacioPreferido;
+                } else {
+                    // 2. Buscamos en los otros espacios (del 1 al 6)
+                    for (let e = 1; e <= 6; e++) {
+                        let espacioString = e.toString();
+                        if (espacioString === espacioPreferido) continue;
+
+                        const snapshotAlt = await db.collection("citas")
+                            .where("fecha", "==", dateStr)
+                            .where("hora", "==", hora)
+                            .where("espacio", "==", espacioString)
+                            .get();
+
+                        if (snapshotAlt.empty) {
+                            espacioAsignado = espacioString;
+                            break; 
+                        }
+                    }
+                }
+
+                if (espacioAsignado) {
+                    // --- NUEVO TEXTO DE NOTAS MÁS CLARO ---
+                    const numSesion = s + 1;
+                    const esUltima = (numSesion === semanas) ? " - ¡ÚLTIMA SESIÓN!" : "";
+                    const notaReubicada = (espacioAsignado !== espacioPreferido) ? " (Reubicada)" : "";
+                    
+                    const textoNota = `CITA FIJA: Sesión ${numSesion} de ${semanas}${esUltima}${notaReubicada}`;
+
                     await db.collection("citas").add({
                         nombre: nombre,
                         telefono: telefono,
                         servicio: "CITA FIJA",
                         fecha: dateStr,
                         hora: hora,
-                        espacio: espacio,
+                        espacio: espacioAsignado,
                         confirmada: false,
                         esBloqueo: false,
-                        notas: `Fija (${s + 1}/${semanas})`,
+                        notas: textoNota, // Aquí aplicamos el cambio
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     creadas++;
+                } else {
+                    ocupadasCompletamente++;
                 }
             }
-            alert(`¡Éxito! Clienta guardada y ${creadas} citas creadas.`);
+
+            let msg = `¡Éxito! Clienta guardada y ${creadas} citas creadas.`;
+            if (ocupadasCompletamente > 0) {
+                msg += `\n\nAtención: ${ocupadasCompletamente} citas no se crearon por falta de espacio.`;
+            }
+            alert(msg);
         }
 
-        // Limpieza común para ambos modos
         elNombre.value = "";
         if(typeof buildAgenda === 'function') buildAgenda();
 
@@ -1211,5 +1345,173 @@ async function eliminarRecurrencia(id) {
         } catch (e) {
             alert("Error al eliminar: " + e.message);
         }
+    }
+}
+// --- FUNCIÓN DE RENOVACIÓN AUTOMÁTICA ---
+async function renovarCitasFijas(citaBase, numSemanas) {
+    try {
+        console.log("Iniciando renovación automática para:", citaBase.nombre);
+        
+        // La primera cita de la nueva tanda será 7 días después de la cita que acabamos de completar
+        let fechaUltimaCita = new Date(citaBase.fecha);
+        let creadas = 0;
+        const TOTAL_ESPACIOS = 6;
+
+        for (let s = 1; s <= numSemanas; s++) {
+            let nuevaFecha = new Date(fechaUltimaCita);
+            nuevaFecha.setDate(fechaUltimaCita.getDate() + (s * 7));
+            const dateStr = getLocalDateString(nuevaFecha);
+
+            let espacioAsignado = null;
+
+            // 1. Buscamos hueco libre (Prioridad al espacio que ya tenía la clienta)
+            const snapPref = await db.collection("citas")
+                .where("fecha", "==", dateStr)
+                .where("hora", "==", citaBase.hora)
+                .where("espacio", "==", citaBase.espacio)
+                .get();
+
+            if (snapPref.empty) {
+                espacioAsignado = citaBase.espacio;
+            } else {
+                // 2. Si su sitio está ocupado, escaneamos los 6 espacios
+                for (let e = 1; e <= TOTAL_ESPACIOS; e++) {
+                    let espStr = e.toString();
+                    if (espStr === citaBase.espacio) continue;
+
+                    const snapAlt = await db.collection("citas")
+                        .where("fecha", "==", dateStr)
+                        .where("hora", "==", citaBase.hora)
+                        .where("espacio", "==", espStr)
+                        .get();
+
+                    if (snapAlt.empty) {
+                        espacioAsignado = espStr;
+                        break;
+                    }
+                }
+            }
+
+            if (espacioAsignado) {
+                // --- AJUSTE DE NOTA CON EL NUEVO FORMATO ---
+                const esUltima = (s === numSemanas) ? " - ¡ÚLTIMA SESIÓN!" : "";
+                const notaReubicada = (espacioAsignado !== citaBase.espacio) ? " (Reubicada)" : "";
+                
+                const textoNota = `CITA FIJA: Sesión ${s} de ${numSemanas}${esUltima}${notaReubicada}`;
+
+                await db.collection("citas").add({
+                    nombre: citaBase.nombre,
+                    telefono: citaBase.telefono || "---",
+                    servicio: "CITA FIJA",
+                    fecha: dateStr,
+                    hora: citaBase.hora,
+                    espacio: espacioAsignado,
+                    confirmada: false,
+                    esBloqueo: false,
+                    notas: textoNota, // Texto amigable para el equipo
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                creadas++;
+            }
+        }
+
+        alert(`¡Renovación completada!\nSe han generado ${creadas} nuevas citas para ${citaBase.nombre} empezando la próxima semana.`);
+        
+        // Refrescamos la agenda para que aparezcan las nuevas citas
+        if(typeof buildAgenda === 'function') buildAgenda();
+
+    } catch (error) {
+        console.error("Error en renovación:", error);
+        alert("No se pudo realizar la renovación automática: " + error.message);
+    }
+}
+let clienteActualHistorialId = null;
+
+function abrirHistorialPago(id) {
+    clienteActualHistorialId = id;
+    const cliente = dbClientes.find(c => c.id === id);
+    if (!cliente) return;
+
+    document.getElementById('historial-cliente-nombre').innerText = "Notas de " + cliente.nombre;
+    
+    // Limpiar formulario
+    document.getElementById('pago-servicio').value = '';
+    document.getElementById('pago-precio').value = '';
+    // Poner fecha de hoy por defecto
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('pago-fecha').value = hoy;
+
+    renderTablaHistorial(cliente.historial || []);
+    document.getElementById('modal-historial-pago').style.display = 'block';
+}
+
+function renderTablaHistorial(historial) {
+    const body = document.getElementById('historial-pago-body');
+    const totalEl = document.getElementById('historial-total-suma');
+    body.innerHTML = '';
+    let sumaTotal = 0;
+
+    historial.forEach((item, index) => {
+        const precio = parseFloat(item.precio) || 0;
+        sumaTotal += precio;
+        body.innerHTML += `
+            <tr>
+                <td style="padding:10px; border-bottom:1px solid #eee;">${item.fecha}</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">${item.servicio}</td>
+                <td style="padding:10px; border-bottom:1px solid #eee;"><b>${precio.toFixed(2)}€</b></td>
+                <td style="padding:10px; border-bottom:1px solid #eee;">
+                    <button onclick="eliminarLineaHistorial(${index})" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+    });
+    totalEl.innerText = sumaTotal.toFixed(2) + " €";
+}
+
+async function guardarNuevaLineaHistorial() {
+    const fecha = document.getElementById('pago-fecha').value;
+    const servicio = document.getElementById('pago-servicio').value;
+    const precio = document.getElementById('pago-precio').value;
+
+    if (!servicio || !precio) return alert("Escribe el servicio y el precio");
+
+    const cliente = dbClientes.find(c => c.id === clienteActualHistorialId);
+    const nuevoHistorial = cliente.historial || [];
+    
+    nuevoHistorial.push({ fecha, servicio: servicio.toUpperCase(), precio: parseFloat(precio) });
+
+    await db.collection("clientes").doc(clienteActualHistorialId).update({ historial: nuevoHistorial });
+    
+    // Actualizamos la vista local
+    renderTablaHistorial(nuevoHistorial);
+    document.getElementById('pago-servicio').value = '';
+    document.getElementById('pago-precio').value = '';
+}
+
+function eliminarLineaHistorial(index) {
+    if(!confirm("¿Borrar esta nota?")) return;
+    const cliente = dbClientes.find(c => c.id === clienteActualHistorialId);
+    const nuevoHistorial = [...cliente.historial];
+    nuevoHistorial.splice(index, 1);
+    
+    db.collection("clientes").doc(clienteActualHistorialId).update({ historial: nuevoHistorial });
+    renderTablaHistorial(nuevoHistorial);
+}
+
+function cerrarHistorial() {
+    document.getElementById('modal-historial-pago').style.display = 'none';
+}
+function abrirHistorialDesdeFicha() {
+    // Obtenemos el ID que está cargado en el campo oculto de la ficha
+    const id = document.getElementById('edit-client-id').value;
+    
+    if (id) {
+        closeClienteModal(); // Cerramos la ficha técnica
+        
+        // Esperamos un instante para que el cierre sea fluido y abrimos los pagos
+        setTimeout(() => {
+            abrirHistorialPago(id); 
+        }, 300);
+    } else {
+        alert("Selecciona o guarda un cliente primero.");
     }
 }
