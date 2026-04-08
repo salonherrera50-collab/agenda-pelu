@@ -1043,15 +1043,16 @@ async function guardarCitaRapida() {
     const numeroEspacio = turnoSeleccionado.replace('E', '');
 
     try {
-        await db.collection("citas").add({
+       await db.collection("citas").add({
             nombre: nombre.toUpperCase(),
             fecha: fecha,
             hora: hora,
-            espacio: numeroEspacio, // <--- CAMBIO CLAVE: "espacio" en lugar de "empleado"
+            espacio: numeroEspacio,
             telefono: "---",
             servicio: "CITA RÁPIDA",
             confirmada: false,
             esBloqueo: false,
+            notificado: true, // <--- AÑADE ESTO: Evita que el iPhone te avise de algo que estás haciendo tú
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 

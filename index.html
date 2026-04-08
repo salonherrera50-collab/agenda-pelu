@@ -633,6 +633,67 @@
   function cerrarHistorial() {
       document.getElementById('modal-historial-pago').style.display = 'none';
   }
+  // --- VIGILANTE DE CITAS WEB PARA NOTIFICACIONES PUSH ---
+db.collection("citas")
+    .where("origen", "==", "web") // Detecta citas de la web pública
+    .where("notificado", "==", false) // Solo las que no han avisado todavía
+    .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+                const cita = change.doc.data();
+                const docId = change.doc.id;
+
+                console.log("¡Nueva cita web detectada! Avisando al iPhone...");
+
+                // 1. Llamamos a la función que despierta al iPhone
+                enviarPushAlIphone(cita.nombre, cita.servicio, cita.hora);
+
+                // 2. Marcamos como notificada para que no suene infinitamente
+                db.collection("citas").doc(docId).update({
+                    notificado: true
+                }).catch(err => console.error("Error al marcar notificado:", err));
+            }
+        });
+    });
+
+// --- FUNCIÓN MAESTRA DE ENVÍO (Sincronizada con el iPhone) ---
+async function enviarPushAlIphone(nombre, servicio, hora) {
+    // Pegamos tu clave real aquí:
+    const CLAVE_SERVIDOR = "AIzaSyAcmTCIKmbTPGxTBtD_fRxt7-yb4lZ4plM"; 
+
+    const mensaje = {
+        "to": "/topics/gestion_pelu",
+        "priority": "high",
+        "content_available": true,
+        "mutable_content": true,
+        "notification": {
+            "title": "🆕 ¡NUEVA CITA WEB!",
+            "body": `${nombre} ha reservado ${servicio} a las ${hora}`,
+            "sound": "default", // Esto hace que el iPhone pite
+            "badge": 1
+        },
+        "data": {
+            "click_action": "TOPIC_NOTIFICATION",
+            "tipo": "nueva_cita"
+        }
+    };
+    // ... resto de la función fetch ...
+
+    try {
+        const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'key=' + CLAVE_SERVIDOR
+            },
+            body: JSON.stringify(mensaje)
+        });
+        const data = await response.json();
+        console.log("Resultado envío Push:", data);
+    } catch (error) {
+        console.error("Error enviando Push:", error);
+    }
+}
 </script>
 </body>
 </html>
