@@ -503,6 +503,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging-compat.js"></script>
 
 <script>
     // Tu configuración de Firebase
@@ -519,6 +520,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+    const messaging = firebase.messaging();
 </script>
 
 <script src="script.js"></script>
@@ -527,6 +529,23 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
   }
+  function solicitarPermisos() {
+  messaging.requestPermission()
+    .then(() => {
+      // Pega aquí tu clave copiada:
+      return messaging.getToken({ 
+        vapidKey: 'BLd4IeUTCLo5F2sEnoXlB2nzPoR9vy4t6Yc-QOkus7_fsk9rc9wx-hi4t7cJOFzdq0M3NScdFRdbtwFoEhFMKjE' 
+      });
+    })
+    .then((token) => {
+      if (token) {
+        console.log('TOKEN PARA NOTIFICACIONES:', token);
+      }
+    })
+    .catch((err) => {
+      console.error('Error de permisos:', err);
+    });
+}
 
   // --- FUNCIONES DE HISTORIAL DE PAGOS ---
   let clienteActualHistorialId = null;

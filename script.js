@@ -23,6 +23,7 @@ firebase.auth().onAuthStateChanged((user) => {
         iniciarEscuchasFirebase();
         showTab('agenda');
         updateDateDisplay();
+        solicitarPermisos();
     } else {
         const authScreen = document.getElementById('auth-screen');
         if (authScreen) authScreen.style.display = 'flex';
