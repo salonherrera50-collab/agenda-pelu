@@ -1,6 +1,6 @@
 // --- 1. NOMBRE DE LA VERSIÓN ---
 // ¡IMPORTANTE! Cambia 'v1.1' a 'v1.2' la próxima vez que subas cambios
-const CACHE_NAME = 'v14.0'; 
+const CACHE_NAME = 'v15.0'; 
 
 const assets = [
   '/',
