@@ -54,6 +54,8 @@ function iniciarEscuchasFirebase() {
     obtenerBloqueosFirebase();
     obtenerUsuariosFirebase();
     obtenerRecurrentesFirebase();
+    
+    activarVigilanteWeb(); // <--- AÑADE ESTA LÍNEA AQUÍ
 }
 
 // --- 3. NAVEGACIÓN Y CALENDARIO ---
@@ -1543,4 +1545,34 @@ function abrirHistorialDesdeFicha() {
     } else {
         alert("Selecciona o guarda un cliente primero.");
     }
+}
+// --- VIGILANTE DE CITAS WEB ---
+function activarVigilanteWeb() {
+    console.log("Vigilante de citas activado: Esperando nuevas reservas...");
+    
+    // Escuchamos solo las citas que vienen de la web y que aún no hemos notificado
+    db.collection("citas")
+        .where("origen", "==", "web")
+        .where("notificado", "==", false)
+        .onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                // Si se añade una cita nueva
+                if (change.type === "added") {
+                    const cita = change.doc.data();
+                    const docId = change.doc.id;
+                    
+                    console.log("¡Cita web detectada! Avisando al iPhone...");
+                    
+                    // Llamamos a la función que tienes en el index.html
+                    if (typeof enviarPushAlIphone === "function") {
+                        enviarPushAlIphone(cita.nombre, cita.servicio, cita.hora);
+                        
+                        // Marcamos como notificada en Firebase para que no vuelva a pitar
+                        db.collection("citas").doc(docId).update({ notificado: true })
+                          .then(() => console.log("Cita marcada como notificada."))
+                          .catch(e => console.error("Error al marcar notificado:", e));
+                    }
+                }
+            });
+        });
 }
