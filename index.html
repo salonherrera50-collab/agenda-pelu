@@ -662,19 +662,18 @@ async function enviarPushAlIphone(nombre, servicio, hora) {
 
     const mensaje = {
         "to": "/topics/gestion_pelu",
-        "priority": "high",           // Prioridad máxima
-        "content_available": true,    // Despierta la app nativa (Background Fetch)
-        "mutable_content": true,      // Permite extensiones de notificación
+        "priority": "high",
+        "mutable_content": true,
+        "content_available": true,
         "notification": {
             "title": "🆕 ¡NUEVA CITA WEB!",
             "body": `${nombre} ha reservado ${servicio} a las ${hora}`,
-            "sound": "default",       // OBLIGATORIO: Si no, iOS no pita bloqueado
+            "sound": "default", // <--- Esto activará el completionHandler de tu Swift
             "badge": 1
         },
         "data": {
-            "click_action": "FLUTTER_NOTIFICATION_CLICK", // Muy común en apps nativas
             "tipo": "nueva_cita",
-            "nombre": nombre
+            "click_action": "FLUTTER_NOTIFICATION_CLICK" 
         }
     };
 
