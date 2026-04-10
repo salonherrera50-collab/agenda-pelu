@@ -424,37 +424,47 @@ function renderClientes(data = dbClientes) {
 const clientForm = document.getElementById('cliente-form');
 if (clientForm) {
     clientForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-client-id').value;
-        
-        // Creamos el objeto base (sin el historial)
-        const cli = {
-            nombre: document.getElementById('cli-nombre').value.toUpperCase().trim(),
-            telefono: document.getElementById('cli-telefono').value.trim(),
-            tinte: document.getElementById('cli-tinte').value,
-            matiz: document.getElementById('cli-matiz').value,
-            notas: document.getElementById('cli-notas').value
-        };
-
-        try {
-            if(id) {
-                // MODO EDICIÓN: Solo actualizamos los campos de texto
-                // Firebase mantendrá el campo 'historial' intacto
-                await db.collection("clientes").doc(id).update(cli);
-            } else {
-                // MODO NUEVO: Inicializamos el historial vacío
-                cli.historial = [];
-                cli.fechaAlta = new Date().toISOString();
-                await db.collection("clientes").add(cli);
-            }
-            closeClienteModal();
-            // Reset de seguridad del ID
-            document.getElementById('edit-client-id').value = "";
-        } catch (error) { 
-            console.error("Error al guardar cliente:", error);
-            alert("Error al guardar los datos.");
-        }
+    e.preventDefault();
+    const id = document.getElementById('edit-client-id').value;
+    
+    const cli = {
+        nombre: document.getElementById('cli-nombre').value.toUpperCase().trim(),
+        telefono: document.getElementById('cli-telefono').value.trim(),
+        tinte: document.getElementById('cli-tinte').value,
+        matiz: document.getElementById('cli-matiz').value,
+        notas: document.getElementById('cli-notas').value
     };
+
+    try {
+        if(id) {
+            // MODO EDICIÓN: Se mantiene igual
+            await db.collection("clientes").doc(id).update(cli);
+        } else {
+            // --- NUEVA VALIDACIÓN DE DUPLICADOS ---
+            // Buscamos si el teléfono ya existe antes de crear
+            const snapshot = await db.collection("clientes")
+                .where("telefono", "==", cli.telefono)
+                .get();
+
+            if (!snapshot.empty) {
+                const existente = snapshot.docs[0].data();
+                alert(`Aviso: El cliente "${existente.nombre}" ya está registrado con este teléfono (${cli.telefono}).`);
+                return; // Bloquea la creación
+            }
+
+            // MODO NUEVO: Manteniendo tus funciones originales
+            cli.historial = [];
+            cli.fechaAlta = new Date().toISOString();
+            await db.collection("clientes").add(cli);
+        }
+        
+        closeClienteModal();
+        document.getElementById('edit-client-id').value = "";
+    } catch (error) { 
+        console.error("Error al guardar cliente:", error);
+        alert("Error al guardar los datos.");
+    }
+};
 }
 
 async function editCli(id) {
