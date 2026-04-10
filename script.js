@@ -1586,3 +1586,26 @@ function activarVigilanteWeb() {
             });
         });
 }
+async function enviarAvisoIphone(nombre, servicio, hora) {
+    const SERVER_KEY = 'AIzaSyAe1gdkZsrnv5_S7uA6XFh3LKpmEBWeQDY'; // Sustituye por tu clave real
+
+    const payload = {
+        "to": "/topics/gestion_pelu",
+        "notification": {
+            "title": "🆕 ¡CITA AGENDADA!",
+            "body": `${nombre} - ${servicio} a las ${hora}`,
+            "sound": "default"
+        }
+    };
+
+    try {
+        await fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `key=${SERVER_KEY}`
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) { console.error("Error notificación:", e); }
+}
