@@ -323,12 +323,18 @@ if (appForm) {
                         const docId = snapshot.docs[0].id;
                         db.collection("clientes").doc(docId).update({ telefono: tlf });
                     } else {
-                        const deseaCrear = confirm(`El cliente "${nombreInput}" no existe. ¿Deseas darlo de alta?`);
-                        if (deseaCrear) {
-                            openClienteModal();
-                            document.getElementById('cli-nombre').value = nombreInput;
-                            document.getElementById('cli-telefono').value = tlf;
-                            document.getElementById('edit-client-id').value = '';
+                        // --- ACTUALIZACIÓN: Solo pregunta si el teléfono tiene 9 dígitos o más ---
+                        if (tlf.length >= 9) {
+                            const deseaCrear = confirm(`El cliente "${nombreInput}" no existe. ¿Deseas darlo de alta?`);
+                            if (deseaCrear) {
+                                openClienteModal();
+                                document.getElementById('cli-nombre').value = nombreInput;
+                                document.getElementById('cli-telefono').value = tlf;
+                                document.getElementById('edit-client-id').value = '';
+                            }
+                        } else {
+                            // Si el teléfono es corto, no hace nada (no pregunta ni crea cliente)
+                            console.log("Teléfono incompleto. Se crea la cita pero se omite el registro de cliente.");
                         }
                     }
                 });
@@ -340,7 +346,6 @@ if (appForm) {
         });
     };
 }
-
 async function confirmCita(id, e) {
     e.stopPropagation();
     const c = dbCitas.find(x => x.id == id);
@@ -493,16 +498,35 @@ async function deleteCli(id) {
 }
 
 // --- 7. NOTAS Y BLOQUEOS ---
-async function saveNote() {
-    const txt = document.getElementById('note-text-input').value;
+async function saveNote(event) {
+    // 1. Evitamos que la página se refresque (esto evita el salto a hoy)
+    if (event) event.preventDefault();
+
+    const input = document.getElementById('note-text-input');
+    const txt = input.value.trim();
+    
     if(txt) {
-        await db.collection("notas").add({
-            // CAMBIO AQUÍ: Usamos tu función local en lugar de toISOString
-            fecha: getLocalDateString(currentDate), 
-            texto: txt
-        });
-        document.getElementById('note-text-input').value = "";
-        closeNoteModal();
+        // 2. Capturamos la fecha que tienes seleccionada en la agenda
+        const fechaParaGuardar = getLocalDateString(currentDate);
+
+        try {
+            // 3. Guardamos en Firebase vinculando la nota a esa fecha
+            await db.collection("notas").add({
+                fecha: fechaParaGuardar, 
+                texto: txt
+            });
+            
+            // 4. Limpiamos el texto y cerramos el modal
+            input.value = "";
+            closeNoteModal();
+            
+            // 5. Refrescamos la escucha de notas para que aparezca la nueva
+            obtenerNotasFirebase(); 
+            
+        } catch (error) {
+            console.error("Error al guardar nota:", error);
+            alert("No se pudo guardar la nota.");
+        }
     }
 }
 
@@ -701,19 +725,27 @@ function obtenerClientesFirebase() {
     });
 }
 
-function obtenerNotasFirebase() {
+// Añadimos 'fechaTarget' como parámetro opcional
+function obtenerNotasFirebase(fechaManual = null) {
     if (unsubscribeNotas) unsubscribeNotas();
 
-    const dateStr = getLocalDateString(currentDate);
-    unsubscribeNotas = db.collection("notas").where("fecha", "==", dateStr).onSnapshot((snapshot) => {
-        dbNotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const container = document.getElementById('daily-notes-container');
-        if(container) container.innerHTML = dbNotas.map(n => `
-            <div class="note-item" style="background:#fff9c4; padding:8px; margin-top:5px; border-radius:5px; font-size:0.75rem; display:flex; justify-content:space-between; border:1px solid #f1e689;">
-                <span>${n.texto}</span>
-                <i class="fas fa-trash" onclick="eliminarNota('${n.id}')" style="color:red; cursor:pointer;"></i>
-            </div>`).join('');
-    });
+    // Prioridad: 1. Fecha pasada por argumento | 2. Fecha actual de la vista
+    const dateStr = fechaManual || getLocalDateString(currentDate);
+
+    unsubscribeNotas = db.collection("notas")
+        .where("fecha", "==", dateStr)
+        .onSnapshot((snapshot) => {
+            const container = document.getElementById('daily-notes-container');
+            if(!container) return;
+
+            dbNotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            container.innerHTML = dbNotas.map(n => `
+                <div class="note-item" style="background:#fff9c4; padding:8px; margin-top:5px; border-radius:5px; font-size:0.75rem; display:flex; justify-content:space-between; border:1px solid #f1e689;">
+                    <span>${n.texto}</span>
+                    <i class="fas fa-trash" onclick="eliminarNota('${n.id}')" style="color:red; cursor:pointer;"></i>
+                </div>`).join('');
+        });
 }
 
 function obtenerBloqueosFirebase() {

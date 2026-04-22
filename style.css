@@ -73,8 +73,10 @@ body {
 
 .main-content { 
     padding: 30px; 
-    overflow-x: hidden; /* Evita que toda la página baile */
+    overflow-x: hidden; 
     overflow-y: auto; 
+    /* Añadimos esto para que al bajar no se pegue al borde de arriba */
+    scroll-padding-top: 20px; 
 }
 
 .agenda-controls { 
@@ -83,6 +85,14 @@ body {
     justify-content: center; 
     gap: 40px; 
     margin-bottom: 25px; 
+    
+    /* --- CONFIGURACIÓN STICKY --- */
+    position: sticky;
+    top: -30px;        /* Se ajusta al padding de .main-content */
+    z-index: 500;      /* Para que pase por encima de las celdas de las citas */
+    background: var(--bg); /* El color de fondo de tu app (#f8f9fd) */
+    padding: 15px 0;   /* Le damos un poco de aire */
+    border-bottom: 1px solid rgba(0,0,0,0.05); /* Una línea invisible que aparece al bajar */
 }
 
 .agenda-controls h1 { 
