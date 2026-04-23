@@ -258,13 +258,14 @@
     <div style="max-height: 315px; overflow-y: auto; overflow-x: auto; border: 1px solid #f1f5f9; border-radius: 10px;">
         <table style="width:100%; border-collapse: collapse; min-width: 450px;">
             <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 10; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.05);">
-                <tr style="text-align:left;">
-                    <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">FECHA</th>
-                    <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">CLIENTA</th>
-                    <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">DNI</th>
-                    <th style="padding:12px 10px; font-size:0.75rem; color:#64748b; text-align:right;">ACCIONES</th>
-                </tr>
-            </thead>
+    <tr style="text-align:left;">
+        <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">FECHA</th>
+        <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">CLIENTA</th>
+        <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">DNI</th>
+        <th style="padding:12px 10px; font-size:0.75rem; color:#64748b;">ESTADO</th>
+        <th style="padding:12px 10px; font-size:0.75rem; color:#64748b; text-align:right;">ACCIONES</th>
+    </tr>
+</thead>
             <tbody id="tabla-consentimientos-body">
                 </tbody>
         </table>
@@ -882,31 +883,39 @@ function cargarGestionConsentimientos() {
         }
 
         querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const id = doc.id;
-            todosLosConsentimientos.push({ id, ...data });
+    const data = doc.data();
+    const id = doc.id;
+    todosLosConsentimientos.push({ id, ...data });
 
-            body.innerHTML += `
-                <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding:10px; font-size:0.85rem;">${data.fecha}</td>
-                    <td style="padding:10px; font-size:0.85rem; font-weight:bold;">${data.nombre}</td>
-                    <td style="padding:10px; font-size:0.85rem;">${data.dni}</td>
-                    <td style="padding:10px; text-align:right;">
-                        <button onclick="descargarCopiaPDF('${id}')" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; margin-right:5px;">
-                            <i class="fas fa-download"></i> PDF
-                        </button>
-                        <button onclick="eliminarConsentimiento('${id}')" style="background:#ee5d50; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>`;
-        });
+    // Definimos el estilo y el badge según el estado
+    const esRevocado = data.revocado === true;
+    const estiloFila = esRevocado ? 'style="background:#f8f9fa; color:#999; opacity:0.8;"' : '';
+    const badgeEstado = esRevocado 
+        ? `<span style="background:#dfe4ea; color:#747d8c; padding:3px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold;"><i class="fas fa-ban"></i> REVOCADO (${data.fecha_cese})</span>`
+        : `<span style="background:#e3fcef; color:#218838; padding:3px 8px; border-radius:12px; font-size:0.7rem; font-weight:bold;"><i class="fas fa-check"></i> ACTIVO</span>`;
+
+    // El botón de borrar solo aparece si NO está revocado
+    const botonAccion = esRevocado 
+        ? `<button onclick="descargarCopiaPDF('${id}')" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;"><i class="fas fa-download"></i> PDF ORIGINAL</button>`
+        : `<button onclick="descargarCopiaPDF('${id}')" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; margin-right:5px;"><i class="fas fa-download"></i> PDF</button>
+           <button onclick="eliminarConsentimiento('${id}')" style="background:#ee5d50; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;"><i class="fas fa-trash"></i> REVOCAR</button>`;
+
+    body.innerHTML += `
+        <tr ${estiloFila} style="border-bottom:1px solid #eee;">
+            <td style="padding:10px; font-size:0.85rem;">${data.fecha}</td>
+            <td style="padding:10px; font-size:0.85rem; font-weight:bold;">${data.nombre} ${esRevocado ? '(BAJA)' : ''}</td>
+            <td style="padding:10px; font-size:0.85rem;">${data.dni}</td>
+            <td style="padding:10px;">${badgeEstado}</td>
+            <td style="padding:10px; text-align:right;">${botonAccion}</td>
+        </tr>`;
+});
     }, (error) => {
         console.error("Error en Firebase:", error);
     });
 }
 
 // Función del Buscador
+// SUSTITUYE TU FUNCIÓN filtrarConsentimientos POR ESTA
 function filtrarConsentimientos() {
     const busqueda = document.getElementById('buscar-consentimiento').value.toLowerCase();
     const body = document.getElementById('tabla-consentimientos-body');
@@ -918,14 +927,21 @@ function filtrarConsentimientos() {
     );
     
     filtrados.forEach(c => {
+        const esRevocado = c.revocado === true;
+        const estiloFila = esRevocado ? 'style="background:#f9f9f9; color:#999;"' : '';
+        const badgeEstado = esRevocado 
+            ? `<span style="background:#dfe4ea; color:#747d8c; padding:3px 8px; border-radius:12px; font-size:0.65rem; font-weight:bold;">REVOCADO (${c.fecha_cese || 'N/A'})</span>`
+            : `<span style="background:#e3fcef; color:#218838; padding:3px 8px; border-radius:12px; font-size:0.65rem; font-weight:bold;">ACTIVO</span>`;
+
         body.innerHTML += `
-            <tr style="border-bottom:1px solid #eee;">
+            <tr ${estiloFila} style="border-bottom:1px solid #eee;">
                 <td style="padding:10px; font-size:0.85rem;">${c.fecha}</td>
                 <td style="padding:10px; font-size:0.85rem; font-weight:bold;">${c.nombre}</td>
                 <td style="padding:10px; font-size:0.85rem;">${c.dni}</td>
+                <td style="padding:10px;">${badgeEstado}</td>
                 <td style="padding:10px; text-align:right;">
                     <button onclick="descargarCopiaPDF('${c.id}')" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; margin-right:5px;"><i class="fas fa-download"></i> PDF</button>
-                    <button onclick="eliminarConsentimiento('${c.id}')" style="background:#ee5d50; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                    ${!esRevocado ? `<button onclick="eliminarConsentimiento('${c.id}')" style="background:#ee5d50; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;"><i class="fas fa-trash"></i></button>` : ''}
                 </td>
             </tr>`;
     });
@@ -995,11 +1011,65 @@ async function descargarCopiaPDF(id) {
     }
 }
 
-function eliminarConsentimiento(id) {
-    if (confirm("¿Eliminar este consentimiento permanentemente?")) {
-        db.collection("consentimientos").doc(id).delete();
+async function eliminarConsentimiento(id) {
+    const confirmacion = confirm("¿Deseas REVOCAR este consentimiento? La imagen se ocultará legalmente pero guardaremos un registro del cese por seguridad.");
+    
+    if (confirmacion) {
+        try {
+            // 1. Obtenemos los datos antes de borrarlos para el PDF de cese
+            const docRef = await db.collection("consentimientos").doc(id).get();
+            const data = docRef.data();
+
+            // 2. Generamos el PDF de Cese para el cliente
+            generarPDFCese(data);
+
+            // 3. En lugar de .delete(), hacemos .update()
+            // Esto es lo que nos da la seguridad legal (Bloqueo de datos)
+            await db.collection("consentimientos").doc(id).update({
+                revocado: true,
+                fecha_cese: new Date().toLocaleDateString()
+            });
+
+            alert("Consentimiento revocado correctamente. El certificado de cese se ha descargado.");
+            
+            // Refrescamos la tabla (opcional según tu flujo de Firebase)
+            cargarGestionConsentimientos(); 
+
+        } catch (error) {
+            console.error("Error al revocar:", error);
+            alert("No se pudo procesar la baja.");
+        }
     }
 }
+
+function generarPDFCese(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.setTextColor(238, 93, 80); // Color rojo suave
+    doc.text("CERTIFICADO DE CESE DE DERECHOS", 20, 30);
+    
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 35, 190, 35);
+
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`En fecha ${new Date().toLocaleDateString()}, se confirma la revocación del`, 20, 50);
+    doc.text(`consentimiento de imagen para:`, 20, 57);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text(`CLIENTE: ${data.nombre}`, 20, 70);
+    doc.text(`DNI: ${data.dni}`, 20, 80);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Salon Lola Herrera confirma que a partir de esta fecha no se hará uso", 20, 100);
+    doc.text("publicitario de las imágenes del cliente y se procede al bloqueo de sus datos.", 20, 107);
+    
+    doc.save(`CESE_IMAGEN_${data.nombre.replace(/\s+/g, '_')}.pdf`);
+}
+
 
 // ACTIVADOR MAESTRO: Carga los datos al pulsar en cualquier sitio que lleve a Gestión
 document.addEventListener('click', function(e) {
@@ -1020,21 +1090,23 @@ async function actualizarEstadoBotonConsentimiento(nombreCliente) {
     if (!btn) return;
 
     try {
-        // Buscamos si existe un consentimiento con ese nombre exacto
+        // 1. Buscamos TODOS los registros de ese nombre (activos y revocados)
         const snapshot = await db.collection("consentimientos")
                                  .where("nombre", "==", nombreCliente.toUpperCase())
                                  .get();
 
-        if (!snapshot.empty) {
-            // ESTADO: FIRMADO (Verde)
-            const docId = snapshot.docs[0].id;
+        // 2. Buscamos si entre ellos hay alguno que NO esté revocado
+        const activoDoc = snapshot.docs.find(doc => doc.data().revocado !== true);
+
+        if (activoDoc) {
+            // ESTADO: FIRMADO Y ACTIVO (Verde)
+            const docId = activoDoc.id;
             btn.style.background = "#4cd137"; // Verde
             btn.style.boxShadow = "0 2px 5px rgba(76, 209, 55, 0.3)";
             txt.innerText = "VER CONSENTIMIENTO";
-            // Guardamos el ID del documento en el botón para usarlo luego
             btn.onclick = () => descargarCopiaPDF(docId);
         } else {
-            // ESTADO: NO FIRMADO (Rojo)
+            // ESTADO: O no existe, o todos están revocados (Rojo)
             btn.style.background = "#ee5d50"; // Rojo
             btn.style.boxShadow = "0 2px 5px rgba(238, 93, 80, 0.3)";
             txt.innerText = "FIRMAR IMAGEN";
