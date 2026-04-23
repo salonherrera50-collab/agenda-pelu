@@ -423,16 +423,20 @@
    <!-- 1. MODAL FICHA CLIENTE (CON BOTÓN DE PAGOS AÑADIDO) -->
 <div id="cliente-modal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeClienteModal()">&times;</span>
+        <span class="close-large" onclick="closeClienteModal()" style="position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer;">&times;</span>
         
-        <!-- Cabecera con título y botón de acción -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-right: 30px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-right: 30px; flex-wrap: wrap; gap: 10px;">
             <h3 style="margin:0;">Ficha Cliente</h3>
             
-            <!-- Botón de acceso rápido al Historial de Pagos -->
-            <button type="button" onclick="abrirHistorialDesdeFicha()" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:6px; box-shadow: 0 2px 5px rgba(108, 92, 231, 0.3);">
-                <i class="fas fa-file-invoice-dollar"></i> VER PAGOS
-            </button>
+            <div style="display:flex; gap:8px;">
+                <button type="button" onclick="abrirHistorialDesdeFicha()" style="background:#6c5ce7; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:6px; box-shadow: 0 2px 5px rgba(108, 92, 231, 0.3);">
+                    <i class="fas fa-file-invoice-dollar"></i> VER PAGOS
+                </button>
+
+                <button type="button" id="btn-consentimiento-ficha" style="background:#ee5d50; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; display:flex; align-items:center; gap:6px; box-shadow: 0 2px 5px rgba(238, 93, 80, 0.3);">
+                    <i class="fas fa-signature"></i> <span id="txt-consentimiento-ficha">FIRMAR IMAGEN</span>
+                </button>
+            </div>
         </div>
 
         <form id="cliente-form" autocomplete="off">
@@ -450,22 +454,31 @@
 </div>
 
     <!-- 2. MODAL INFO CLIENTE -->
-    <div id="stats-modal" class="modal"><div class="modal-content"><span class="close" onclick="document.getElementById('stats-modal').style.display='none'">&times;</span><h3>Info Cliente</h3><div id="stats-content"></div></div></div>
+    <div id="stats-modal" class="modal">
+    <div class="modal-content" style="position:relative;">
+        <span class="close-large" onclick="document.getElementById('stats-modal').style.display='none'" style="position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer;">&times;</span>
+        
+        <div id="stats-content" style="padding-top: 20px;">
+            </div>
+    </div>
+</div>
     
     <!-- 3. MODAL NOTAS (CON AUTOCOMPLETE DESACTIVADO) -->
     <div id="note-modal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeNoteModal()">&times;</span>
-            <h3>Nueva Nota del Día</h3>
-            <form id="note-form" autocomplete="off">
-                <div class="field"><textarea id="note-text-input"></textarea></div>
-                <button type="button" onclick="saveNote(event)" class="btn-main">AÑADIR</button>
-            </form>
-        </div>
+    <div class="modal-content" style="position:relative; padding-top: 40px;">
+        
+        <span class="close-large" onclick="closeNoteModal()" style="position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer;">&times;</span>
+        
+        <h3 style="margin:0 0 20px 0;">Nueva Nota del Día</h3>
+        
+        <form id="note-form" autocomplete="off">
+            <div class="field">
+                <textarea id="note-text-input" placeholder="Escribe algo aquí..." style="height: 100px;"></textarea>
+            </div>
+            <button type="button" onclick="saveNote(event)" class="btn-main">AÑADIR</button>
+        </form>
     </div>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+</div>
 <!-- MODAL DE BÚSQUEDA GLOBAL -->
 <div id="search-modal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:99999;">
     <div class="modal-content" style="background:white; margin: 10% auto; padding:25px; max-width: 500px; border-radius: 20px; position:relative;">
@@ -997,6 +1010,48 @@ document.addEventListener('click', function(e) {
 
 // Carga de respaldo al iniciar
 setTimeout(cargarGestionConsentimientos, 2000);
+
+// --- NUEVA LÓGICA DE BOTÓN DINÁMICO EN FICHA ---
+
+async function actualizarEstadoBotonConsentimiento(nombreCliente) {
+    const btn = document.getElementById('btn-consentimiento-ficha');
+    const txt = document.getElementById('txt-consentimiento-ficha');
+    
+    if (!btn) return;
+
+    try {
+        // Buscamos si existe un consentimiento con ese nombre exacto
+        const snapshot = await db.collection("consentimientos")
+                                 .where("nombre", "==", nombreCliente.toUpperCase())
+                                 .get();
+
+        if (!snapshot.empty) {
+            // ESTADO: FIRMADO (Verde)
+            const docId = snapshot.docs[0].id;
+            btn.style.background = "#4cd137"; // Verde
+            btn.style.boxShadow = "0 2px 5px rgba(76, 209, 55, 0.3)";
+            txt.innerText = "VER CONSENTIMIENTO";
+            // Guardamos el ID del documento en el botón para usarlo luego
+            btn.onclick = () => descargarCopiaPDF(docId);
+        } else {
+            // ESTADO: NO FIRMADO (Rojo)
+            btn.style.background = "#ee5d50"; // Rojo
+            btn.style.boxShadow = "0 2px 5px rgba(238, 93, 80, 0.3)";
+            txt.innerText = "FIRMAR IMAGEN";
+            btn.onclick = () => abrirModalFirmaDesdeFicha(nombreCliente);
+        }
+    } catch (error) {
+        console.error("Error al verificar consentimiento:", error);
+    }
+}
+
+function abrirModalFirmaDesdeFicha(nombre) {
+    // Abrimos el modal que ya tienes
+    window.openConsentimientoModal();
+    // Auto-rellenamos el nombre para que no tengan que escribirlo
+    document.getElementById('cons-nombre').value = nombre.toUpperCase();
+}
+
 </script>
 </body>
 </html>

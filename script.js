@@ -483,7 +483,11 @@ async function editCli(id) {
         document.getElementById('cli-notas').value = c.notas || '';
         
         const modal = document.getElementById('cliente-modal');
-        if(modal) modal.style.display = 'block';
+        if(modal) {
+            modal.style.display = 'block';
+            // --- NUEVA LÓGICA: Comprobar consentimiento al abrir ficha ---
+            actualizarEstadoBotonConsentimiento(c.nombre);
+        }
     }
 }
 
@@ -776,12 +780,81 @@ function renderBlocks() {
 async function eliminarUsuario(id) { if(confirm("¿Borrar usuario?")) await db.collection("usuarios").doc(id).delete(); }
 
 async function verStats(id) {
-    const c = dbClientes.find(x => x.id == id);
-    if(!c) return;
-    const total = dbCitas.filter(x => x.nombre === c.nombre).length;
+    const c = dbClientes.find(x => x.id === id);
+    if (!c) return;
+
+    const modal = document.getElementById('stats-modal');
     const content = document.getElementById('stats-content');
-    if (content) content.innerHTML = `<h3>${c.nombre}</h3><p>Visitas registradas: ${total}</p><hr><p><b>Notas:</b> ${c.notas || 'Sin notas'}</p>`;
-    document.getElementById('stats-modal').style.display = 'block';
+    
+    // 1. Ponemos el modal en carga
+    content.innerHTML = `<p style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> Cargando historial detallado...</p>`;
+    modal.style.display = 'block';
+
+    try {
+        // 2. Vamos a Firebase a por las citas confirmadas de este cliente
+        const snapshot = await db.collection("citas")
+            .where("nombre", "==", c.nombre)
+            .where("confirmada", "==", true)
+            .get();
+        
+        let historialHtml = "";
+        const totalVisitas = snapshot.size;
+
+        if (snapshot.empty) {
+            historialHtml = `<p style="text-align:center; color:#999; margin:20px 0;">No hay visitas confirmadas registradas.</p>`;
+        } else {
+            // Extraemos los datos y los ordenamos por fecha (la más reciente primero)
+            const listaCitas = [];
+            snapshot.forEach(doc => listaCitas.push(doc.data()));
+            listaCitas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            // 3. Construimos la lista de servicios
+            historialHtml = `<div style="margin-top:15px; border-top:1px solid #eee; padding-top:15px;">
+                                <h4 style="font-size:0.8rem; color:#6c5ce7; margin-bottom:10px; text-transform:uppercase;">Historial de Trabajos</h4>`;
+            
+            listaCitas.forEach(cita => {
+                historialHtml += `
+                    <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid #6c5ce7; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-size:0.9rem; font-weight:bold; color:#2f3542;">${cita.servicio ? cita.servicio.toUpperCase() : 'SERVICIO'}</div>
+                            <div style="font-size:0.75rem; color:#666;"><i class="far fa-calendar-alt"></i> ${cita.fecha}</div>
+                        </div>
+                    </div>`;
+            });
+            historialHtml += `</div>`;
+        }
+
+        // 4. Calculamos el total de dinero del historial de pagos
+        const totalDinero = (c.historial || []).reduce((acc, item) => acc + (parseFloat(item.precio) || 0), 0);
+
+        // 5. Dibujamos el contenido final
+        content.innerHTML = `
+            <div style="text-align:center; margin-bottom:15px;">
+                <h2 style="margin:0; color:#2f3542; font-size:1.4rem;">${c.nombre}</h2>
+                <small style="color:#6c5ce7; font-weight:bold;">FICHA DE ESTADÍSTICAS</small>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div style="background:#e8f4fd; padding:10px; border-radius:10px; text-align:center;">
+                    <span style="display:block; font-size:0.6rem; color:#0077b6; font-weight:bold;">VISITAS</span>
+                    <span style="font-size:1.3rem; font-weight:900; color:#0077b6;">${totalVisitas}</span>
+                </div>
+                <div style="background:#ebfbee; padding:10px; border-radius:10px; text-align:center;">
+                    <span style="display:block; font-size:0.6rem; color:#2b8a3e; font-weight:bold;">INVERSIÓN</span>
+                    <span style="font-size:1.3rem; font-weight:900; color:#2b8a3e;">${totalDinero.toFixed(2)}€</span>
+                </div>
+            </div>
+
+            <p style="font-size:0.85rem; margin-bottom:5px;"><b>Notas técnicas:</b> ${c.notas || 'Sin notas'}</p>
+            <p style="font-size:0.85rem; margin-bottom:15px;"><b>Mezcla:</b> ${c.tinte || '-'}/${c.matiz || '-'}</p>
+
+            ${historialHtml}
+        `;
+
+    } catch (error) {
+        console.error("Error al cargar stats:", error);
+        content.innerHTML = "Error al obtener datos de Firebase.";
+    }
 }
 
 async function purgeAppointments() {
@@ -1640,4 +1713,57 @@ async function enviarAvisoIphone(nombre, servicio, hora) {
             body: JSON.stringify(payload)
         });
     } catch (e) { console.error("Error notificación:", e); }
+}
+
+// Función para gestionar el botón dinámico de consentimiento
+async function actualizarEstadoBotonConsentimiento(nombreCliente) {
+    const btn = document.getElementById('btn-consentimiento-ficha');
+    const txt = document.getElementById('txt-consentimiento-ficha');
+    
+    if (!btn || !txt) return;
+
+    try {
+        // Buscamos si existe un consentimiento con ese nombre exacto (en mayúsculas)
+        const snapshot = await db.collection("consentimientos")
+                                 .where("nombre", "==", nombreCliente.toUpperCase().trim())
+                                 .get();
+
+        if (!snapshot.empty) {
+            // ESTADO: YA FIRMADO (Botón Verde)
+            const docId = snapshot.docs[0].id;
+            btn.style.background = "#4cd137"; // Verde
+            btn.style.boxShadow = "0 2px 5px rgba(76, 209, 55, 0.3)";
+            txt.innerText = "VER IMAGEN";
+            // Al hacer clic, descargará el PDF
+            btn.onclick = () => descargarCopiaPDF(docId);
+        } else {
+            // ESTADO: NO FIRMADO (Botón Rojo)
+            btn.style.background = "#ee5d50"; // Rojo
+            btn.style.boxShadow = "0 2px 5px rgba(238, 93, 80, 0.3)";
+            txt.innerText = "FIRMAR IMAGEN";
+            // Al hacer clic, abrirá el modal para firmar (pedirá DNI)
+            btn.onclick = () => {
+                window.openConsentimientoModal();
+                // Autorellenamos el nombre en el modal de firma
+                document.getElementById('cons-nombre').value = nombreCliente.toUpperCase();
+            };
+        }
+    } catch (error) {
+        console.error("Error al verificar consentimiento:", error);
+    }
+}
+
+function abrirHistorialDesdeFicha() {
+    // 1. Miramos qué ID de cliente tenemos cargado en el campo oculto de la ficha
+    const id = document.getElementById('edit-client-id').value;
+    
+    if (id) {
+        // 2. Cerramos el modal de la ficha de cliente
+        closeClienteModal(); 
+        
+        // 3. Abrimos el modal de historial de pagos usando la función que ya tenías
+        abrirHistorialPago(id);
+    } else {
+        alert("Error: No se ha podido identificar al cliente.");
+    }
 }
