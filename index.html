@@ -137,6 +137,30 @@
         <i class="fas fa-chart-line" style="color:#6c5ce7;"></i> 
         Resumen Año <span id="current-year-display" style="color:#6c5ce7;">2026</span>
     </h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:15px;">
+        <div style="background:#f8fafc; padding:15px; border-radius:12px; border:1px solid #e2e8f0; text-align:center;">
+            <small style="color:#64748b; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Citas Creadas</small>
+            <div id="count-total-anual" style="font-size:1.8rem; font-weight:800; color:#1e293b;">0</div>
+        </div>
+        
+        <div style="background:#f0fff4; padding:15px; border-radius:12px; border:1px solid #c6f6d5; text-align:center;">
+            <small style="color:#2f855a; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Atendidas</small>
+            <div id="count-confirmadas-anual" style="font-size:1.8rem; font-weight:800; color:#276749;">0</div>
+        </div>
+
+        <div style="background:#fffaf0; padding:15px; border-radius:12px; border:1px solid #feebc8; text-align:center;">
+            <small style="color:#c05621; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Pendientes Web</small>
+            <div id="count-web-anual" style="font-size:1.8rem; font-weight:800; color:#9c4221;">0</div>
+        </div>
+
+        <div style="background:#ebf8ff; padding:15px; border-radius:12px; border:1px solid #bee3f8; text-align:center;">
+            <small style="color:#2b6cb0; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Total Clientes Web</small>
+            <div id="count-total-web-anual" style="font-size:1.8rem; font-weight:800; color:#2c5282;">0</div>
+        </div>
+    </div>
+</div>
+
+
     <!-- --- BLOQUE DE CITAS RECURRENTES (CLIENTAS FIJAS) --- -->
 <div class="table-card" style="padding:20px; margin-bottom:20px; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
     <h3 style="margin-bottom:15px; border-bottom: 2px solid #f1f5f9; padding-bottom:10px; display: flex; align-items: center; gap: 10px;">
@@ -222,28 +246,7 @@
 </div>
 
     
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:15px;">
-        <div style="background:#f8fafc; padding:15px; border-radius:12px; border:1px solid #e2e8f0; text-align:center;">
-            <small style="color:#64748b; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Citas Creadas</small>
-            <div id="count-total-anual" style="font-size:1.8rem; font-weight:800; color:#1e293b;">0</div>
-        </div>
-        
-        <div style="background:#f0fff4; padding:15px; border-radius:12px; border:1px solid #c6f6d5; text-align:center;">
-            <small style="color:#2f855a; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Atendidas</small>
-            <div id="count-confirmadas-anual" style="font-size:1.8rem; font-weight:800; color:#276749;">0</div>
-        </div>
-
-        <div style="background:#fffaf0; padding:15px; border-radius:12px; border:1px solid #feebc8; text-align:center;">
-            <small style="color:#c05621; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Pendientes Web</small>
-            <div id="count-web-anual" style="font-size:1.8rem; font-weight:800; color:#9c4221;">0</div>
-        </div>
-
-        <div style="background:#ebf8ff; padding:15px; border-radius:12px; border:1px solid #bee3f8; text-align:center;">
-            <small style="color:#2b6cb0; font-weight:bold; text-transform:uppercase; font-size:0.6rem; display:block; margin-bottom:5px;">Total Clientes Web</small>
-            <div id="count-total-web-anual" style="font-size:1.8rem; font-weight:800; color:#2c5282;">0</div>
-        </div>
-    </div>
-</div>
+    
 <div class="table-card" style="padding:20px; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
         <h3 style="margin:0; display: flex; align-items: center; gap: 10px;">
