@@ -369,62 +369,55 @@ body {
    NUEVO AJUSTE: NOTAS DEL DÍA (CORRECCIÓN DE DESBORDE Y ELIMINACIÓN)
    ========================================================================== */
 
-/* 1. Contenedor que limita el ancho para que no se salga del sidebar */
-#daily-notes-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-    max-width: 100%; 
-    box-sizing: border-box;
+/* --- REDISEÑO DEFINITIVO DE NOTAS --- */
+
+#daily-notes-container .note-item {
+    background: #fff9c4 !important; /* Amarillo vainilla suave */
+    border: 1px solid #f0e68c !important;
+    padding: 14px !important;
+    border-radius: 20px !important; /* Mucho más redondeado, estilo burbuja */
+    font-size: 0.88rem !important;
+    color: #5d4037 !important; 
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
+    transition: all 0.3s ease !important; /* Recuperamos el efecto */
+    margin-bottom: 8px !important;
 }
 
-/* 2. La nota en sí con control de texto largo */
-.note-item {
-    background: #fff9c4; 
-    padding: 12px;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    color: var(--text);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    
-    /* Esto es lo que evita que el texto se salga como en tu captura */
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: break-word; 
+/* El efecto de "zoom" al pasar el ratón */
+#daily-notes-container .note-item:hover {
+    transform: scale(1.03) translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.12) !important;
+    background: #fffce0 !important; /* Se ilumina un poco */
 }
 
-/* 3. El texto de la nota */
-.note-text {
-    flex: 1;
-    line-height: 1.4;
-    white-space: normal; /* Asegura que el texto fluya hacia abajo */
+#daily-notes-container .note-text {
+    flex: 1 !important;
+    line-height: 1.4 !important;
+    font-weight: 500 !important;
 }
 
-/* 4. Botón X para eliminar la nota */
-.delete-note-btn {
-    background: #ee5d50; /* Color rojo para que se identifique como borrar */
-    color: white;
-    border: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0; /* Evita que la X se aplaste con textos largos */
-    transition: 0.2s;
+/* Botón X más moderno */
+#daily-notes-container .delete-note-btn {
+    background: rgba(0,0,0,0.06) !important;
+    color: #8d6e63 !important;
+    border: none !important;
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    transition: 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
-.delete-note-btn:hover {
-    transform: scale(1.1);
-    background: #d44c40;
+#daily-notes-container .delete-note-btn:hover {
+    background: #ee5d50 !important;
+    color: white !important;
 }
 /* --- EFECTO VISUAL PARA EL BOTÓN VOLVER A HOY --- */
 
@@ -654,22 +647,30 @@ body {
     box-shadow: 0 0 10px rgba(255, 71, 87, 0.15) !important;
 }
 
-/* 2. LA CELDA DE LA HORA (RECUPERAR COLOR INTERIOR) */
+/* 2. LA CELDA DE LA HORA (ACTUALIZADA PARA EVITAR TRANSPARENCIAS) */
 .time-label.is-now {
-    /* IMPORTANTE: Quitamos cualquier background-color de aquí 
-       para que se vean tus clases .sem-orange o .sem-red */
+    /* 1. Fondo blanco por defecto para que no se vea el rojo de la fila detrás */
+    background-color: #ffffff; 
     background-image: none !important; 
     
-    /* Mantenemos el borde rojo de "ahora" alrededor de la celda */
+    /* 2. Mantenemos el borde rojo de "ahora" */
     border: 2px solid rgba(255, 71, 87, 0.8) !important; 
     
-    /* El resto de estilo para que sea un cuadrado perfecto */
+    /* 3. Ajuste de color de texto: 
+       Si la celda es naranja/roja el texto es blanco, 
+       pero si es blanca (sin cita) ponemos el texto oscuro para que se lea la hora */
+    color: #333 !important; 
+    
     border-radius: 18px !important;
-    color: white !important;
     font-weight: 900 !important;
     position: relative;
     z-index: 20;
     box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4) !important;
+}
+
+/* 4. REFUERZO: Si tiene color (naranja/rojo), el texto vuelve a ser blanco */
+.time-label.is-now[class*="sem-"] {
+    color: white !important;
 }
 
 /* 3. REFUERZO PARA LAS CITAS */
