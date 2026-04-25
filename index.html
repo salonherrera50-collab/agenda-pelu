@@ -90,14 +90,14 @@
             <div class="agenda-grid">
                 <!-- Cabecera de empleados -->
                 <div class="grid-header">
-                    <div class="h-cell sticky-col">HORA</div>
-                    <div class="h-cell">E1</div>
-                    <div class="h-cell">E2</div>
-                    <div class="h-cell">E3</div>
-                    <div class="h-cell">E4</div>
-                    <div class="h-cell">E5</div>
-                    <div class="h-cell">E6</div>
-                </div>
+    <div class="h-cell sticky-col" style="font-size: 0.7rem; letter-spacing: 1px;">HORA</div>
+    <div class="h-cell"><i class="fas fa-chair icono-sillon"></i><span>Sillón 1</span></div>
+    <div class="h-cell"><i class="fas fa-chair icono-sillon"></i><span>Sillón 2</span></div>
+    <div class="h-cell"><i class="fas fa-chair icono-sillon"></i><span>Sillón 3</span></div>
+    <div class="h-cell"><i class="fas fa-chair icono-sillon"></i><span>Sillón 4</span></div>
+    <div class="h-cell"><i class="fas fa-chair icono-sillon"></i><span>Sillón 5</span></div>
+    <div class="h-cell"><i class="fas fa-chair icono-sillon"></i><span>Sillón 6</span></div>
+</div>
                 <!-- Cuerpo de la agenda -->
                 <div id="agenda-body"></div>
             </div>
@@ -161,87 +161,95 @@
 </div>
 
 
-    <!-- --- BLOQUE DE CITAS RECURRENTES (CLIENTAS FIJAS) --- -->
-<div class="table-card" style="padding:20px; margin-bottom:20px; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+  <div class="table-card" style="padding:20px; margin-bottom:20px; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
     <h3 style="margin-bottom:15px; border-bottom: 2px solid #f1f5f9; padding-bottom:10px; display: flex; align-items: center; gap: 10px;">
         <i class="fas fa-redo-alt" style="color:#6c5ce7;"></i> 
         Gestión de Clientas Fijas
     </h3>
 
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
-        <!-- Formulario para añadir -->
-        <!-- Formulario para añadir con Repeticiones -->
-<div style="background:#f8fafc; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
-    <h4 style="margin-top:0; font-size:0.9rem; color:#64748b;">Configurar Clienta Fija</h4>
-    <input type="hidden" id="edit-rec-id" value="">
+    <div style="background:#f8fafc; padding:20px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:25px; align-items: stretch;">
+            
+            <div style="border-right: 1px solid #e2e8f0; padding-right: 20px;">
+                <h4 style="margin-top:0; font-size:0.9rem; color:#6c5ce7; margin-bottom:12px;">
+                    <i class="fas fa-user-plus"></i> Configurar Clienta Fija
+                </h4>
+                <input type="hidden" id="edit-rec-id" value="">
 
-    <div class="field">
-        <label>Cliente (Nombre exacto)</label>
-        <input type="text" id="rec-nombre" list="list-nombres" placeholder="Ej: MARIA GARCIA" autocomplete="off">
-    </div>
-    <div style="display:flex; gap:10px;">
-        <div class="field" style="flex:1;">
-            <label>Día</label>
-            <select id="rec-dia">
-                <option value="1">Lunes</option><option value="2">Martes</option>
-                <option value="3">Miércoles</option><option value="4">Jueves</option>
-                <option value="5">Viernes</option><option value="6">Sábado</option>
-            </select>
-        </div>
-        <div class="field" style="flex:1;">
-            <label>Hora</label>
-            <input type="time" id="rec-hora" value="10:00">
-        </div>
-    </div>
-    <div class="field">
-        <label>Espacio (Empleado)</label>
-        <select id="rec-espacio">
-            <option value="1">E1</option><option value="2">E2</option>
-            <option value="3">E3</option><option value="4">E4</option>
-            <option value="5">E5</option><option value="6">E6</option>
-        </select>
-    </div>
-    
-    <!-- NUEVO: Selector de repeticiones aquí mismo -->
-    <div class="field">
-        <label style="color:#6c5ce7; font-weight:bold;">¿Cuántas semanas crear ahora?</label>
-        <select id="rec-semanas" style="width:100%; border:2px solid #6c5ce7; border-radius:8px; padding:5px;">
-            <option value="1">Solo 1 semana</option>
-            <option value="4" selected>Próximas 4 semanas (1 Mes)</option>
-            <option value="8">Próximas 8 semanas (2 Meses)</option>
-            <option value="12">Próximas 12 semanas (3 Meses)</option>
-        </select>
-    </div>
+                <div class="field">
+                    <label style="font-size: 0.75rem;">Cliente (Nombre exacto)</label>
+                    <input type="text" id="rec-nombre" list="list-nombres" placeholder="Ej: MARIA GARCIA" autocomplete="off" style="width:100%;">
+                </div>
 
-    <button onclick="guardarYGenerarFija()" class="btn-main" style="width:100%; background:#6c5ce7; color:white; margin-top:10px;">
-        <i class="fas fa-magic"></i> GUARDAR Y GENERAR CITAS
-    </button>
-</div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <div class="field" style="flex:1;">
+                        <label style="font-size: 0.75rem;">Día</label>
+                        <select id="rec-dia" style="width:100%;">
+                            <option value="1">Lunes</option><option value="2">Martes</option>
+                            <option value="3">Miércoles</option><option value="4">Jueves</option>
+                            <option value="5">Viernes</option><option value="6">Sábado</option>
+                        </select>
+                    </div>
+                    <div class="field" style="flex:1;">
+                        <label style="font-size: 0.75rem;">Hora</label>
+                        <input type="time" id="rec-hora" value="10:00" style="width:100%;">
+                    </div>
+                    <div class="field" style="flex:0.6;">
+                        <label style="font-size: 0.75rem;">Espacio</label>
+                        <select id="rec-espacio" style="width:100%;">
+                            <option value="1">E1</option><option value="2">E2</option>
+                            <option value="3">E3</option><option value="4">E4</option>
+                            <option value="5">E5</option><option value="6">E6</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="field" style="margin-top:10px;">
+                    <label style="color:#6c5ce7; font-weight:bold; font-size: 0.75rem;">¿Cuántas semanas crear ahora?</label>
+                    <select id="rec-semanas" style="width:100%; border:1px solid #6c5ce7; border-radius:8px; padding:5px;">
+                        <option value="1">Solo 1 semana</option>
+                        <option value="4" selected>Próximas 4 semanas (1 Mes)</option>
+                        <option value="8">Próximas 8 semanas (2 Meses)</option>
+                        <option value="12">Próximas 12 semanas (3 Meses)</option>
+                    </select>
+                </div>
 
-        <!-- Generador Masivo -->
-        <div style="background:#fff5f5; padding:15px; border-radius:12px; border:1px solid #fed7d7;">
-            <h4 style="margin-top:0; font-size:0.9rem; color:#c53030;">Proyectar en Agenda Real</h4>
-            <p style="font-size:0.75rem; color:#718096; margin-bottom:15px;">
-                Esta acción creará citas individuales en la agenda basándose en la lista de clientas fijas.
-            </p>
-            <div class="field">
-                <label>¿Cuántas semanas generar?</label>
-                <select id="semanas-generar" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
-                    <option value="1">1 Semana (Próxima)</option>
-                    <option value="2">2 Semanas</option>
-                    <option value="4" selected>4 Semanas (1 Mes)</option>
-                    <option value="8">8 Semanas (2 Meses)</option>
-                </select>
+                <button onclick="guardarYGenerarFija()" class="btn-main" style="width:100%; background:#6c5ce7; color:white; margin-top:15px; padding:12px;">
+                    <i class="fas fa-magic"></i> GUARDAR Y GENERAR CITAS
+                </button>
             </div>
-            <button onclick="generarCitasMasivas()" class="btn-main" style="background:#e53e3e; margin-top:15px;">
-                <i class="fas fa-magic"></i> LANZAR GENERADOR MASIVO
-            </button>
+
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+                <h4 style="margin-top:0; font-size:0.9rem; color:#c53030; margin-bottom:10px;">
+                    <i class="fas fa-bolt"></i> Proyectar en Agenda
+                </h4>
+                <p style="font-size:0.75rem; color:#718096; margin-bottom:15px; line-height: 1.3;">
+                    Proyecta masivamente todas las fijas configuradas en las fechas seleccionadas.
+                </p>
+                <div class="field">
+                    <label style="font-size: 0.75rem;">Semanas a generar:</label>
+                    <select id="semanas-generar" style="width:100%; padding:10px; border-radius:8px; border:1px solid #fed7d7;">
+                        <option value="1">1 Semana (Próxima)</option>
+                        <option value="2">2 Semanas</option>
+                        <option value="4" selected>4 Semanas (1 Mes)</option>
+                        <option value="8">8 Semanas (2 Meses)</option>
+                    </select>
+                </div>
+                <button onclick="generarCitasMasivas()" class="btn-main" style="background:#e53e3e; margin-top:20px; padding:12px;">
+                    <i class="fas fa-magic"></i> LANZAR GENERADOR
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Tabla de clientas fijas -->
-    <div id="lista-recurrentes" style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-        <!-- Se rellena desde JS -->
+    <div class="table-card" style="border:1px solid #f1f5f9; border-radius:12px; overflow: hidden;">
+        <div style="background: #f8fafc; padding: 10px 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.8rem; font-weight: bold; color: #64748b; text-transform: uppercase;">Listado de Clientas Fijas</span>
+            <span id="badge-total-fijas" style="background: #6c5ce7; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">0 fijas</span>
+        </div>
+
+        <div id="lista-recurrentes" style="max-height: 280px; overflow-y: auto; background: white;">
+            </div>
     </div>
 </div>
 
@@ -276,22 +284,46 @@
 </div>
 
 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                        <div class="table-card" style="padding:20px;">
-                            <h3><i class="fas fa-calendar-times"></i> Bloqueos de Horario</h3>
-                            <div class="field"><label>Fecha</label><input type="date" id="block-date"></div>
-                            <div class="field">
-                                <label>Tipo de Bloqueo</label>
-                                <select id="block-type" onchange="toggleBlockTimes()">
-                                    <option value="full">Día Completo</option>
-                                    <option value="partial">Franja Horaria</option>
-                                </select>
-                            </div>
-                            <div id="block-time-inputs" style="display:none; gap:10px; margin-top:10px;">
-                                <input type="time" id="block-start"> a <input type="time" id="block-end">
-                            </div>
-                            <button onclick="saveBlock()" class="btn-main" style="margin-top:15px;">APLICAR BLOQUEO</button>
-                            <div id="active-blocks-list" style="margin-top:20px;"></div>
-                        </div>
+                        <div class="table-card" style="padding:20px; margin-bottom:20px; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <h3 style="margin-bottom:15px; border-bottom: 2px solid #f1f5f9; padding-bottom:10px; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-calendar-times" style="color:#ee5d50;"></i> 
+        Bloqueos de Horario
+    </h3>
+
+    <div style="background:#fff5f5; padding:15px; border-radius:12px; border:1px solid #fed7d7; margin-bottom:20px;">
+        <div class="field">
+            <label style="font-size: 0.75rem; font-weight: bold;">Fecha</label>
+            <input type="date" id="block-date" style="width:100%;">
+        </div>
+        
+        <div class="field" style="margin-top:10px;">
+            <label style="font-size: 0.75rem; font-weight: bold;">Tipo de Bloqueo</label>
+            <select id="block-type" onchange="toggleBlockTimes()" style="width:100%;">
+                <option value="full">Día Completo</option>
+                <option value="partial">Franja Horaria</option>
+            </select>
+        </div>
+
+        <div id="block-time-inputs" style="display:none; gap:10px; margin-top:10px; align-items: center; justify-content: center; background: white; padding: 10px; border-radius: 8px;">
+            <input type="time" id="block-start" style="border:1px solid #ddd; padding:5px; border-radius:5px;"> 
+            <span style="font-size:0.8rem; font-weight:bold;">a</span> 
+            <input type="time" id="block-end" style="border:1px solid #ddd; padding:5px; border-radius:5px;">
+        </div>
+
+        <button onclick="saveBlock()" class="btn-main" style="width:100%; background:#ee5d50; margin-top:15px; padding:12px;">
+            <i class="fas fa-lock"></i> APLICAR BLOQUEO
+        </button>
+    </div>
+
+    <div style="border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden;">
+        <div style="background: #f8fafc; padding: 10px 15px; border-bottom: 1px solid #e2e880; font-size: 0.8rem; font-weight: bold; color: #64748b; text-transform: uppercase;">
+            Bloqueos Activos
+        </div>
+        
+        <div id="active-blocks-list" style="max-height: 220px; overflow-y: auto; background: white; display: block;">
+            </div>
+    </div>
+</div>
 
                         <div class="table-card" style="padding:20px;">
                             <h3><i class="fas fa-user-shield"></i> Administración</h3>

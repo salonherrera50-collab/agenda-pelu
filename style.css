@@ -122,11 +122,11 @@ body {
     border-radius: 30px; 
     box-shadow: 0 20px 40px rgba(0,0,0,0.03); 
     
-    /* CAMBIO AQUÍ: Volvemos a permitir que la tarjeta ocupe el ancho disponible */
-    width: 100%; 
+    /* CAMBIO CLAVE: Se ajusta al ancho de las celdas, no sobra nada */
+    width: fit-content !important; 
     max-width: 100%; 
     
-    /* Esto es lo que activa las barras de desplazamiento */
+    /* Mantenemos el scroll por si en algún momento giras la tablet */
     overflow-x: auto; 
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -135,13 +135,14 @@ body {
 
 .grid-header, .agenda-row { 
     display: grid !important; 
-    /* 90px + (6 x 150px) */
     grid-template-columns: 90px repeat(6, 150px) !important; 
+    width: max-content !important; 
     
-    /* Mantenemos esto para que E6 no sea gigante */
-    width: max-content; 
-    
-    border-bottom: 2px solid #ced4da;
+    /* CAMBIOS AQUÍ */
+    gap: 10px;               /* Separa las celdas entre sí */
+    background: none !important; /* Quita el fondo de la fila para que las celdas "floten" */
+    border-bottom: none !important; /* Adiós a la raya gris larga */
+    margin-bottom: 10px;     /* Separa una fila de otra */
     align-items: center;
 }
 
@@ -171,11 +172,13 @@ body {
 .time-label { 
     display: flex; 
     align-items: center; 
-    justify-content: center; /* Centra la hora en su celda */
+    justify-content: center; 
     font-weight: 800; 
     font-size: 1.1rem; 
-    height: 100px;           /* Ajustado a la nueva altura que hablamos */
-    transition: 0.3s; 
+    height: 110px;           
+    background: #edf2f7; /* Un gris muy claro para diferenciar la columna de horas */
+    color: var(--text);
+    border: 1px solid #e2e8f0 !important;
 }
 
 .sem-orange { background: #ff9f43 !important; color: white !important; }
@@ -183,42 +186,113 @@ body {
 
 .slot-cell {
     display: flex;
-    justify-content: center; /* Centra la cita horizontalmente */
-    align-items: center;     /* Centra la cita verticalmente */
-    padding: 8px;
+    justify-content: center;
+    align-items: center;
     padding: 10px; 
     position: relative; 
-    border-right: 2px solid #ced4da;
     cursor: pointer; 
-    height: 110px;    /* Misma altura que .time-label */
-    min-height: 110px;
-    max-height: 110px;
-    overflow: hidden;
+    height: 110px;
     box-sizing: border-box;
+    
+    /* FONDO Y FORMA */
+    background: var(--white);
+    border-radius: 18px;       
+    
+    /* DEFINICIÓN MEJORADA: Borde gris suave y sombra con dos niveles */
+    border: 1px solid #e2e8f0 !important;    
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+        0 2px 4px -1px rgba(0, 0, 0, 0.03); 
+    
+    /* ANIMACIÓN */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto al tocar o pasar el ratón: El cuadrado se "ilumina" y se eleva */
+.slot-cell:not(:has(.occupied)):hover {
+    transform: translateY(-2px);
+    background-color: #f8faff;
+    border-color: var(--primary) !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    z-index: 10;
 }
 
 .slot-cell:last-child {
     border-right: none;
 }
+/* --- DISEÑO CRISTAL: CORRECCIÓN DE DIFERENCIACIÓN --- */
+
 .occupied { 
-    background: var(--primary); 
     color: white; 
-    border-radius: 18px; 
-    height: 100%; 
+    border-radius: 12px; 
+    height: 94%; 
+    width: 96%;
+    margin: 0 auto;
     display: flex; 
     flex-direction: column; 
     justify-content: center; 
-    padding: 15px; 
+    padding: 10px; 
     box-sizing: border-box; 
     position: relative; 
-    
-    /* ESTO EVITA QUE EL CONTENIDO ESTIRE LA CELDA */
-    overflow: hidden;         /* Corta lo que sobresalga */
-    width: 100%;              /* Se ajusta al ancho de .slot-cell */
-    max-height: 100%;         /* No permite que la tarjeta sea más alta que la celda */
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); 
+    transition: all 0.3s ease;
+
+    /* 1. MORADO (Base: SIN !important para que otros puedan ganar) */
+    background: linear-gradient(135deg, #4361ee 0%, #6c5ce7 50%, #3f51b5 100%);
 }
 
-.occupied.confirmed { background: var(--success); }
+/* 2. VERDE (Confirmada: CON !important para obligar al cambio) */
+.occupied.confirmed { 
+    background: linear-gradient(135deg, #05cd99 0%, #00b894 50%, #009473 100%) !important; 
+}
+
+/* 3. NARANJA (Web: CON !important para obligar al cambio) */
+.occupied.sem-orange, 
+.occupied[style*="orange"],
+.occupied[style*="255, 159, 67"] { 
+    background: linear-gradient(135deg, #ff9f43 0%, #ee8412 50%, #d37209 100%) !important;
+}
+
+/* --- EL RESTO DEL DISEÑO (Brillo y textos) --- */
+
+.occupied::before {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(45deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 70%);
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+
+.client-name-display {
+    background: #ffffff !important;
+    color: #1a202c !important;
+    font-weight: 850 !important;
+    padding: 4px 12px !important;
+    border-radius: 8px !important;
+    margin: 0 auto 8px auto !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    display: block !important;
+    width: fit-content !important;
+}
+
+.service-text-display {
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+}
+
+.occupied:hover {
+    transform: translateY(-3px) scale(1.02);
+    filter: brightness(1.15);
+}
 
 .note-icon { 
     position: absolute; 
@@ -533,4 +607,78 @@ body {
         margin: 10px auto;
         padding: 15px;
     }
+}
+/* 1. Cuadrícula Estilo Panel de Control */
+.slot-cell {
+    border: 1px solid #eef0f7 !important; /* Gris muy suave pero presente */
+    background: #ffffff;
+    position: relative;
+    height: 110px;
+    transition: all 0.2s ease;
+    border-right: 1px solid #eef0f7 !important;
+    border-bottom: 1px solid #eef0f7 !important;
+}
+
+/* 2. El "+" solo aparece al pasar el ratón (Hover) */
+.slot-cell:not(:has(.occupied))::after {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    font-size: 2rem;
+    color: #6c5ce7;
+    font-weight: 300;
+    opacity: 0; /* Invisible por defecto */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+/* 3. Efecto al interactuar */
+.slot-cell:not(:has(.occupied)):hover {
+    background-color: #f8faff; 
+    border-color: var(--primary) !important; /* El azul de tu marca */
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.slot-cell:not(:has(.occupied)):hover::after {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* 1. FILA ACTUAL: Reglas generales para los huecos de sillones */
+.is-now-row .slot-cell {
+    border: 2px solid rgba(255, 71, 87, 0.6) !important;
+    background-color: rgba(255, 71, 87, 0.03) !important;
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.15) !important;
+}
+
+/* 2. LA CELDA DE LA HORA (RECUPERAR COLOR INTERIOR) */
+.time-label.is-now {
+    /* IMPORTANTE: Quitamos cualquier background-color de aquí 
+       para que se vean tus clases .sem-orange o .sem-red */
+    background-image: none !important; 
+    
+    /* Mantenemos el borde rojo de "ahora" alrededor de la celda */
+    border: 2px solid rgba(255, 71, 87, 0.8) !important; 
+    
+    /* El resto de estilo para que sea un cuadrado perfecto */
+    border-radius: 18px !important;
+    color: white !important;
+    font-weight: 900 !important;
+    position: relative;
+    z-index: 20;
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4) !important;
+}
+
+/* 3. REFUERZO PARA LAS CITAS */
+.is-now-row .occupied {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Limpieza de la fila para que no haya franjas raras */
+.is-now-row {
+    background-color: transparent !important;
+    border: none !important;
 }

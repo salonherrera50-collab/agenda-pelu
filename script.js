@@ -579,9 +579,22 @@ function openAppModal(id, time, e) {
     const esp = id.split('-')[2];
     const dateStr = getLocalDateString(currentDate);
     
+    // --- TÍTULO INVERTIDO ---
+const display = document.getElementById('modal-time-display');
+const tituloAgenda = document.querySelector('h1').innerText; 
+
+display.innerHTML = `
+    <div style="font-size: 1.1rem; color: var(--text); font-weight: 800; text-transform: uppercase; margin-bottom: 2px;">
+        ${tituloAgenda}
+    </div>
+    <div style="font-size: 0.9rem; color: #a3aed0; font-weight: 600;">
+        ${time} — SILLÓN ${esp}
+    </div>
+`;
+    // ---------------------------------------
+
     // Limpiar formulario
     document.getElementById('appointment-form').reset();
-    document.getElementById('modal-time-display').innerText = `${time} - E${esp}`;
     
     const citaExistente = dbCitas.find(c => c.fecha === dateStr && c.hora === time && c.espacio == esp);
     
@@ -598,46 +611,38 @@ function openAppModal(id, time, e) {
         if (contenedorSonia) contenedorSonia.style.display = 'grid';
         if (contenedorNueva) contenedorNueva.style.display = 'none';
         
-        // Localizamos los 3 botones del contenedor 'tablet-actions'
         const botones = contenedorSonia.querySelectorAll('button');
-        const btnAdaptar = botones[0]; // El primer botón (Azul)
-        const btnConf = document.getElementById('btn-confirmar-modal'); // Verde
-        const btnBorr = document.getElementById('btn-borrar-modal');    // Rojo
+        const btnAdaptar = botones[0]; 
+        const btnConf = document.getElementById('btn-confirmar-modal'); 
+        const btnBorr = document.getElementById('btn-borrar-modal');    
 
-        // --- LÓGICA PARA RECUPERAR EL BOTÓN DE ACEPTAR CITA WEB ---
         const esDeWeb = citaExistente.origen === 'web' && !citaExistente.confirmada;
 
         if (esDeWeb) {
-            // TRANSFORMACIÓN: De "ADAPTAR" a "ACEPTAR WEB"
-            btnAdaptar.type = "button"; // Evitamos que envíe el formulario por defecto
+            btnAdaptar.type = "button";
             btnAdaptar.innerHTML = '<i class="fas fa-check-double" style="font-size: 14px;"></i><span style="font-size: 9px; text-transform: uppercase;">ACEPTAR WEB</span>';
-            btnAdaptar.style.background = "#6c5ce7"; // Color lila de gestión
+            btnAdaptar.style.background = "#6c5ce7"; 
             btnAdaptar.onclick = (event) => {
                 confirmarCitaWeb(citaExistente.id, event);
                 closeModal();
             };
         } else {
-            // RESTAURACIÓN: Volver a ser el botón "ADAPTAR" normal
             btnAdaptar.type = "submit";
             btnAdaptar.innerHTML = '<i class="fas fa-sync-alt" style="font-size: 14px;"></i><span style="font-size: 9px; text-transform: uppercase;">ADAPTAR</span>';
-            btnAdaptar.style.background = "#4361ee"; // Tu azul original
+            btnAdaptar.style.background = "#4361ee"; 
             btnAdaptar.onclick = null; 
         }
 
-        // Configurar botón OK (Verde)
         if (btnConf) {
             btnConf.onclick = (event) => {
-                // Si tienes la función confirmarCita definida, la llamamos:
                 if(typeof confirmCita === 'function') confirmCita(citaExistente.id, event);
-                else confirmarCita(); // Según tu HTML llamas a confirmarCita()
+                else confirmarCita(); 
                 closeModal();
             };
         }
 
-        // Configurar botón BORRAR (Rojo)
         if (btnBorr) {
             btnBorr.onclick = (event) => {
-                // Usamos tu función deleteApp() del HTML o deleteCita() del JS
                 if(typeof deleteCita === 'function') deleteCita(citaExistente.id, event).then(() => closeModal());
                 else deleteApp(); 
             };
@@ -890,46 +895,57 @@ async function saveUser() {
 }
 
 async function actualizarEstadisticasAnuales() {
-    const anioActual = new Date().getFullYear().toString();
+    const anioActual = new Date().getFullYear().toString(); // "2026"
     const displayYear = document.getElementById('current-year-display');
     if(displayYear) displayYear.innerText = anioActual;
 
     try {
-        // Obtenemos todas las citas de la base de datos
         const snapshot = await db.collection("citas").get();
-        const todas = snapshot.docs.map(doc => doc.data());
+        
+        // CORRECCIÓN CRÍTICA: Mapeamos incluyendo el ID para que los clicks en la agenda funcionen
+        const todas = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { id: doc.id, ...data }; 
+        });
 
-        // FILTRO MEJORADO
+        // FILTRO MAESTRO: Solo 2026, sin bloqueos y con nombre válido
         const delAnio = todas.filter(c => {
-            // 1. Validar que tenga fecha y sea de este año
             const esEsteAnio = c.fecha && typeof c.fecha === 'string' && c.fecha.startsWith(anioActual);
-            
-            // 2. Identificar si es un bloqueo (por nombre o por marca nueva)
             const nombreLimpio = c.nombre ? c.nombre.trim().toUpperCase() : "";
-            const esUnBloqueo = (nombreLimpio === "BLOQUEADO" || c.esBloqueo === true);
             
-            // Solo queremos lo que sea de este año y NO sea un bloqueo
+            // Excluimos bloqueos y registros sin nombre (evita los "17" fantasmas)
+            const esUnBloqueo = (nombreLimpio === "BLOQUEADO" || c.esBloqueo === true || nombreLimpio === "");
+            
             return esEsteAnio && !esUnBloqueo;
         });
 
-        // ASIGNACIÓN DE VALORES (con fallback a 0 si no hay datos)
+        // --- ACTUALIZACIÓN DE CONTADORES EN LA INTERFAZ ---
+
+        // 1. TOTAL CITAS (Gris)
         if(document.getElementById('count-total-anual')) {
             document.getElementById('count-total-anual').innerText = delAnio.length;
         }
 
+        // 2. ATENDIDAS (Verde)
         if(document.getElementById('count-confirmadas-anual')) {
-            document.getElementById('count-confirmadas-anual').innerText = delAnio.filter(c => c.confirmada === true).length;
+            const confirmadas = delAnio.filter(c => c.confirmada === true).length;
+            document.getElementById('count-confirmadas-anual').innerText = confirmadas;
         }
 
+        // 3. PENDIENTES WEB (Naranja) - Citas web que aún no has confirmado
         if(document.getElementById('count-web-anual')) {
-            document.getElementById('count-web-anual').innerText = delAnio.filter(c => c.origen === 'web' && c.confirmada === false).length;
+            const pendWeb = delAnio.filter(c => c.origen === 'web' && c.confirmada === false).length;
+            document.getElementById('count-web-anual').innerText = pendWeb;
         }
 
+        // 4. TOTAL CLIENTES WEB (Azul) - ¡Aquí corregimos el marcador!
         if(document.getElementById('count-total-web-anual')) {
-            document.getElementById('count-total-web-anual').innerText = delAnio.filter(c => c.origen === 'gestionada').length;
+            // Contamos solo las citas de 2026 que vinieron de la WEB
+            const totalWebReal = delAnio.filter(c => c.origen === 'web').length;
+            document.getElementById('count-total-web-anual').innerText = totalWebReal;
         }
 
-        console.log("Estadísticas actualizadas con", delAnio.length, "citas reales.");
+        console.log("Estadísticas 2026: Sincronización completada con éxito.");
 
     } catch (error) {
         console.error("Error calculando estadísticas:", error);
@@ -1767,3 +1783,68 @@ function abrirHistorialDesdeFicha() {
         alert("Error: No se ha podido identificar al cliente.");
     }
 }
+(function() {
+    function actualizarAgenda() {
+        const ahora = new Date();
+        const h = ahora.getHours();
+        const m = ahora.getMinutes() < 30 ? "00" : "30";
+        
+        const franjaCorta = `${h}:${m}`;
+        const franjaLarga = `${h < 10 ? '0' + h : h}:${m}`;
+        
+        // 1. Limpieza total
+        document.querySelectorAll('.is-now, .is-now-row').forEach(el => {
+            el.classList.remove('is-now', 'is-now-row');
+        });
+
+        // 2. Buscar hora exacta
+        const etiquetas = document.querySelectorAll('.time-label');
+        let objetivo = null;
+        for (let el of etiquetas) {
+            const texto = el.textContent.trim();
+            if (texto === franjaCorta || texto === franjaLarga) {
+                objetivo = el;
+                break; 
+            }
+        }
+
+        if (objetivo) {
+            // 3. COMPROBAR SI ES HOY
+            const diaHoy = ahora.getDate().toString();
+            const titulo = document.querySelector('h2, .current-date-display, .fc-toolbar-title')?.textContent || "";
+            const botonHoyActivo = Array.from(document.querySelectorAll('button, .btn'))
+                                     .find(b => b.textContent.includes("ESTÁS EN HOY"));
+
+            // SOLO SI ES HOY: Pintamos y hacemos Scroll
+            if (titulo.includes(diaHoy) || botonHoyActivo) {
+                
+                // Marcamos la hora
+                objetivo.classList.add('is-now');
+
+                // Buscamos la fila
+                const fila = objetivo.closest('.grid-row') || objetivo.parentElement;
+                if (fila) {
+                    fila.classList.add('is-now-row');
+                    
+                    // PINTAR SOLO CELDAS VACÍAS (Evitamos las citas)
+                    // Buscamos las celdas y solo añadimos la clase si NO tienen citas dentro
+                    fila.querySelectorAll('.slot-cell, td').forEach(celda => {
+                        // Si la celda no tiene elementos con clase 'appointment' o similar
+                        if (!celda.querySelector('.appointment, .event, .citas-class')) { 
+                            celda.classList.add('is-now-row');
+                        }
+                    });
+                }
+
+                // 4. SCROLL (Ahora dentro del IF de "Hoy")
+                setTimeout(() => {
+                    objetivo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        }
+    }
+
+    window.addEventListener('load', () => setTimeout(actualizarAgenda, 1000));
+    document.addEventListener('click', () => setTimeout(actualizarAgenda, 800));
+    setInterval(actualizarAgenda, 60000);
+})();
